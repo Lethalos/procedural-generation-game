@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class UnitManager : StaticInstance<UnitManager> {
     public void SpawnHeroes() {
-        SpawnUnit(ExampleHeroType.Tarodev, new Vector3(1, 0, 0));
+        //SpawnUnit(ExampleHeroType.Tarodev, new Vector3(1, 0, 0));
     }
 
     void SpawnUnit(ExampleHeroType t, Vector3 pos) {
