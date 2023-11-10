@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FallofGenerator : MonoBehaviour
+public class FalloffGenerator : MonoBehaviour
 {
-    public static float[,] GenerateFallofMap(int size)
+    public static float[,] GenerateFalloffMap(int size)
     {
         float[,] map = new float[size, size];
 
