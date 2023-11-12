@@ -7,41 +7,63 @@ using System.Collections.Generic;
 public class MapGenerator : MonoBehaviour
 {
 
-    public enum DrawMode { NoiseMap, colorMap, Mesh, FalloffMap };
-    public DrawMode drawMode;
+    [SerializeField] enum DrawMode { NoiseMap, colorMap, Mesh, FalloffMap };
+    [SerializeField] DrawMode drawMode;
 
-    public Noise.NormalizeMode normalizeMode;
+    [SerializeField] Noise.NormalizeMode normalizeMode;
 
-    public const int mapChunkSize = 239;
+    [SerializeField] bool useFlatShading;
+
     [Range(0, 6)]
-    public int editorPreviewLOD;
-    public float noiseScale;
+    [SerializeField] int editorPreviewLOD;
+    [SerializeField] float noiseScale;
 
-    public int octaves;
+    [SerializeField] int octaves;
     [Range(0, 1)]
-    public float persistance;
-    public float lacunarity;
+    [SerializeField] float persistance;
+    [SerializeField] float lacunarity;
 
-    public int seed;
-    public Vector2 offset;
+    [SerializeField] int seed;
+    [SerializeField] Vector2 offset;
 
-    public bool useFalloff;
+    [SerializeField] bool useFalloff;
 
-    public float meshHeightMultiplier;
-    public AnimationCurve meshHeightCurve;
+    [SerializeField] float meshHeightMultiplier;
+    [SerializeField] AnimationCurve meshHeightCurve;
 
     public bool autoUpdate;
 
-    public TerrainType[] regions;
+    [SerializeField] TerrainType[] regions;
+    private static MapGenerator Instance;
 
-    float[,] falloffMap;
+    private float[,] falloffMap;
 
-    Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
-    Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
+    private Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
+    private Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
 
     void Awake()
     {
         falloffMap = FalloffGenerator.GenerateFalloffMap(mapChunkSize);
+    }
+
+    public static int mapChunkSize
+    {
+        get
+        {
+            if(Instance == null)
+            {
+                Instance = FindObjectOfType<MapGenerator>();
+            }
+
+            if(Instance.useFlatShading)
+            {
+                return 95;
+            }
+            else
+            {
+                return 239;
+            }
+        }
     }
 
     public void DrawMapInEditor()
@@ -59,7 +81,7 @@ public class MapGenerator : MonoBehaviour
         }
         else if (drawMode == DrawMode.Mesh)
         {
-            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(mapData.heightMap, meshHeightMultiplier, meshHeightCurve, editorPreviewLOD), TextureGenerator.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
+            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(mapData.heightMap, meshHeightMultiplier, meshHeightCurve, editorPreviewLOD, useFlatShading), TextureGenerator.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
         }
         else if (drawMode == DrawMode.FalloffMap)
         {
@@ -96,7 +118,7 @@ public class MapGenerator : MonoBehaviour
 
     void MeshDataThread(MapData mapData, int lod, Action<MeshData> callback)
     {
-        MeshData meshData = MeshGenerator.GenerateTerrainMesh(mapData.heightMap, meshHeightMultiplier, meshHeightCurve, lod);
+        MeshData meshData = MeshGenerator.GenerateTerrainMesh(mapData.heightMap, meshHeightMultiplier, meshHeightCurve, lod, useFlatShading);
         lock (meshDataThreadInfoQueue)
         {
             meshDataThreadInfoQueue.Enqueue(new MapThreadInfo<MeshData>(callback, meshData));
