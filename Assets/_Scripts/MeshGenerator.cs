@@ -244,5 +244,4 @@ public class MeshData
         mesh.normals = bakedNormals;
         return mesh;
     }
-
 }
