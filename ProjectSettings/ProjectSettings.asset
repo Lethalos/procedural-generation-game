@@ -801,7 +801,8 @@ PlayerSettings:
   webGLMemoryGeometricGrowthStep: 0.2
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    Standalone: DISTANT_LANDS;COZY_WEATHER;COZY_URP;UNISTORM_PRESENT;__MICROSPLAT__
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}

@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
+  m_Name: Cumulunimbus
+  m_EditorClassIdentifier: 
+  weatherTime: {x: 5, y: 64.62}
+  likelihood: 1
+  forecastNext:
+  - {fileID: 11400000, guid: 5f1173877e77b3b40af72776ce4ae64a, type: 2}
+  forecastModifierMethod: 1
+  chances: []
+  cloudSettings:
+    cumulusCoverage: 0.173
+    altocumulusCoverage: 0.314
+    chemtrailCoverage: 0.38
+    cirrostratusCoverage: 0.499
+    cirrusCoverage: 0
+    nimbusCoverage: 0.988
+    nimbusVariation: 0.504
+    nimbusHeightEffect: 0.792
+    borderHeight: 0.232
+    borderVariation: 0.952
+    borderEffect: -0.36
+  fogDensity: 2.76
+  FX:
+  - {fileID: 11400000, guid: f69846c0573b8f34c83c68de190c7d8e, type: 2}
+  - {fileID: 11400000, guid: 05e49b693c9994f4a9f2d4a95d19ec35, type: 2}
+  - {fileID: 11400000, guid: ca58f4622d4c4954dac92a21699c672d, type: 2}
+  - {fileID: 11400000, guid: 05e49b693c9994f4a9f2d4a95d19ec35, type: 2}
+  - {fileID: 11400000, guid: 81d5405a7a2400b468f4feeace096c59, type: 2}
+  - {fileID: 11400000, guid: 78a0e1aebc0292f4885202406e623d4c, type: 2}
+  - {fileID: 11400000, guid: 68819bc966d79894e94dbfbdfaf541fa, type: 2}
+  - {fileID: 11400000, guid: f0451281c275da249ac6b7dbf6789132, type: 2}
+  - {fileID: 11400000, guid: 4505d67b062b37240b5906993b1fab90, type: 2}

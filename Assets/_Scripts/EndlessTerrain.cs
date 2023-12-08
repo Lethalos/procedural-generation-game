@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using JBooth.MicroSplat;
 
 public class EndlessTerrain : MonoBehaviour
 {
@@ -106,6 +107,9 @@ public class EndlessTerrain : MonoBehaviour
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshFilter = meshObject.AddComponent<MeshFilter>();
             meshCollider = meshObject.AddComponent<MeshCollider>();
+
+            //meshObject.AddComponent<MicroSplatTerrain>(); // delete
+
             meshRenderer.material = material;
 
             meshObject.transform.position = positionV3 * mapGenerator.terrainData.uniformScale;

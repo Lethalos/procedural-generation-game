@@ -21,7 +21,8 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: MeshMaterial
-  m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: ffd5b1fbd806c554bbbf04abef906b97,
+    type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -29,14 +30,33 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2000
-  stringTagMap:
-    RenderType: Opaque
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - Texture2D_C005B064:
+        m_Texture: {fileID: 2800000, guid: 69e10fcec9984ba4f839a5693383c57e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Texture2D_D7D66558:
+        m_Texture: {fileID: 2800000, guid: 34cc9e38b8104804e84fe9912b222d9c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Texture2D_DE8BF47E:
+        m_Texture: {fileID: 2800000, guid: 758b1fc63752a1e44957111d5af9b00c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Albedo:
+        m_Texture: {fileID: 2800000, guid: 5e1acf362611957488060eee4178b3f3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BASE_COLOR_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BaseMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -65,7 +85,39 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Dirt_Texture:
+        m_Texture: {fileID: 2800000, guid: a374719d123bbae458e7d9851e78dd9b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EMISSION_COLOR_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Emission:
+        m_Texture: {fileID: 2800000, guid: 5e1acf362611957488060eee4178b3f3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Grass:
+        m_Texture: {fileID: 2800000, guid: 34cc9e38b8104804e84fe9912b222d9c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Grass_Diffuse:
+        m_Texture: {fileID: 2800000, guid: 34cc9e38b8104804e84fe9912b222d9c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Grass_Heightmap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Grass_Normal:
+        m_Texture: {fileID: 2800000, guid: 4de2d70f411e0c54bbd4e767877b2560, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _METALNESS_MAP:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -89,8 +141,20 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Metallic:
+        m_Texture: {fileID: 2800000, guid: 5e1acf362611957488060eee4178b3f3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NORMAL_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Normal:
+        m_Texture: {fileID: 2800000, guid: 69e10fcec9984ba4f839a5693383c57e, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Normal0:
@@ -117,6 +181,66 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Rock_Diffuse:
+        m_Texture: {fileID: 2800000, guid: 123ed1068296a044a91089d417aff4fd, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Rock_Heightmap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Rock_Normal:
+        m_Texture: {fileID: 2800000, guid: 0ba05a3b6e72aa042a803d770bf0134b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Rocks1:
+        m_Texture: {fileID: 2800000, guid: 123ed1068296a044a91089d417aff4fd, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Rocks2:
+        m_Texture: {fileID: 2800000, guid: fe043cf2df1b0b240a4a2f2f8e007430, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SPECULAR_COLOR_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SPECULAR_IOR_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SPECULAR_ROUGHNESS_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_a490b3241735d68e9ee2d1f1bbfed8dc_Texture_1_Texture2D:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Sand:
+        m_Texture: {fileID: 2800000, guid: aebd4361ecece8942a293aab916bb93e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Sand_Diffuse:
+        m_Texture: {fileID: 2800000, guid: aebd4361ecece8942a293aab916bb93e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Sand_Heightmap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Sand_Normal:
+        m_Texture: {fileID: 2800000, guid: e9653fd78dfa9f64688aa825fc1f7389, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Smoothness:
+        m_Texture: {fileID: 2800000, guid: 5e1acf362611957488060eee4178b3f3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Snow:
+        m_Texture: {fileID: 2800000, guid: 35238e2d8cb81854588229891eef1f97, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -137,7 +261,35 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Stone:
+        m_Texture: {fileID: 2800000, guid: a374719d123bbae458e7d9851e78dd9b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Stony:
+        m_Texture: {fileID: 2800000, guid: a374719d123bbae458e7d9851e78dd9b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _TerrainHolesTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2D:
+        m_Texture: {fileID: 2800000, guid: 34cc9e38b8104804e84fe9912b222d9c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2D_Array:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Textures:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Water:
+        m_Texture: {fileID: 2800000, guid: 49a6c3b11f9e9bc41b2b2afffc810188, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _texcoord:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -155,7 +307,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - Vector1_6E11FCEA: 0.5
+    - Vector1_8B35DE98: 60
+    - Vector1_90E376AD: 1
+    - Vector1_A492C01C: 1
     - _AlphaClip: 0
+    - _AlphaCutoff: 0.5
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
@@ -168,45 +325,110 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
+    - _Dirt_Scale: 4
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnableHeightBlend: 0
     - _EnableInstancedPerPixelNormal: 1
     - _EnvironmentReflections: 1
+    - _Float: 0
+    - _GlassColorVarDensity: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossinessSource: 0
     - _GlossyReflections: 0
+    - _GrassBlendStrength: 0
+    - _GrassEndHeight: 1.22
+    - _GrassHeight: -5.88
+    - _GrassMaxHeight: 10
+    - _GrassSpread: 0
+    - _GrassThreshold: 0
+    - _Grass_Blend_Amount: 10
+    - _Grass_Blend_Amount_1: 10
+    - _Grass_Height: 0.08
+    - _Grass_Normal_Strength: 1
+    - _Grass_Tile: 15
+    - _Height: 1.25
     - _HeightTransition: 0
+    - _METALNESS: 0
     - _Metallic: 0
     - _Metallic0: 0
     - _Metallic1: 0
     - _Metallic2: 0
     - _Metallic3: 0
+    - _MetallicMultiplier: 0.5
     - _NumLayersCount: 1
     - _OcclusionStrength: 1
     - _Parallax: 0.005
+    - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
+    - _RockStartingSlope: 60
+    - _RockThreshold: 0
+    - _Rock_Height: 0.1
+    - _Rock_Normal_Strength: 1
+    - _Rock_Tile: 15
+    - _Rocks1MaxHeight: 20
+    - _Rocks2MaxHeight: 40
+    - _SPECULAR_IOR: 1.5
+    - _SPECULAR_ROUGHNESS: 0
     - _SampleGI: 0
+    - _SandBlendStrength: 0
+    - _SandEndHeight: 0.75
+    - _SandHeight: 17.2
+    - _SandMaxHeight: 1
+    - _SandSpread: 0
+    - _SandThreshold: 0
+    - _SandTreshold: 0
+    - _Sand_Blend_Amount: 1
+    - _Sand_Height: -5
+    - _Sand_Normal_Strength: 1
+    - _Sand_Tile: 15
+    - _Saturation: 1
     - _Shininess: 0
     - _Smoothness: 0
     - _Smoothness0: 0.5
     - _Smoothness1: 0.5
     - _Smoothness2: 0.5
     - _Smoothness3: 0.5
+    - _SmoothnessMultiplier: 0.5
     - _SmoothnessSource: 0
     - _SmoothnessTextureChannel: 0
+    - _SnowAttraction: 0.313
+    - _SnowMaxHeight: 0
     - _SpecSource: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
+    - _StoneMaxHeight: 5
     - _Surface: 0
+    - _WaterBlendStrength: 0
+    - _WaterEndHeight: 0.53
+    - _WaterHeight: 5.26
+    - _WaterHeightBlend: 1.07
+    - _WaterHeightBlendScale: 1.6
+    - _WaterHeigthBlendNoise: 0.75
+    - _WaterMaxHeight: -0.1
+    - _WaterSpread: 0
+    - _WaterThreshold: 3.08
     - _WorkflowMode: 1
     - _ZWrite: 1
+    - __dirty: 1
     m_Colors:
+    - _BASE_COLOR: {r: 1, g: 1, b: 1, a: 0}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EMISSION_COLOR: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _GrassToSandTransition: {r: -5, g: 5, b: 0, a: 0}
+    - _MainColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RockColor: {r: 0, g: 0, b: 0, a: 0}
+    - _RockToGrassTransition: {r: 0.4, g: 1.4, b: 0, a: 0}
+    - _SPECULAR_COLOR: {r: 1, g: 1, b: 1, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _Specular0: {r: 1, g: 1, b: 1, a: 0}
+    - _Specular1: {r: 1, g: 1, b: 1, a: 0}
+    - _Specular2: {r: 1, g: 1, b: 1, a: 0}
+    - _Specular3: {r: 1, g: 1, b: 1, a: 0}
+    - _TerrainColor: {r: 1, g: 0.48598132, b: 0, a: 0}
   m_BuildTextureStacks: []
