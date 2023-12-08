@@ -6,7 +6,6 @@ using System.Collections.Generic;
 
 public class MapGenerator : MonoBehaviour
 {
-
     [SerializeField] enum DrawMode { NoiseMap, Mesh, FalloffMap };
     [SerializeField] DrawMode drawMode;
 
@@ -16,9 +15,14 @@ public class MapGenerator : MonoBehaviour
 
     [SerializeField] Material terrainMaterial;
 
-    [Range(0, 6)]
+    [Range(0, MeshGenerator.numSupportedChunkSizes - 1)]
+    [SerializeField] int chunkSizeIndex;
+    [Range(0, MeshGenerator.numSupportedFlatShadedChunkSizes - 1)]
+    [SerializeField] int flatShadedChunkSizeIndex;
+
+    [Range(0, MeshGenerator.numSupportedLODs - 1)]
     [SerializeField] int editorPreviewLOD;
-   
+
     public bool autoUpdate;
 
     private float[,] falloffMap;
@@ -33,7 +37,7 @@ public class MapGenerator : MonoBehaviour
             DrawMapInEditor();
         }
     }
-    
+
     private void OnTextureValuesUpdated()
     {
         textureData.ApplyToMaterial(terrainMaterial);
@@ -43,13 +47,13 @@ public class MapGenerator : MonoBehaviour
     {
         get
         {
-            if(terrainData.useFlatShading)
+            if (terrainData.useFlatShading)
             {
-                return 95;
+                return MeshGenerator.supportedFlatShadedChunkSizes[flatShadedChunkSizeIndex] - 1;
             }
             else
             {
-                return 239;
+                return MeshGenerator.supportedChunkSizes[chunkSizeIndex] - 1;
             }
         }
     }
@@ -75,7 +79,8 @@ public class MapGenerator : MonoBehaviour
 
     public void RequestMapData(Vector2 center, Action<MapData> callback)
     {
-        ThreadStart threadStart = delegate {
+        ThreadStart threadStart = delegate
+        {
             MapDataThread(center, callback);
         };
 
@@ -93,7 +98,8 @@ public class MapGenerator : MonoBehaviour
 
     public void RequestMeshData(MapData mapData, int lod, Action<MeshData> callback)
     {
-        ThreadStart threadStart = delegate {
+        ThreadStart threadStart = delegate
+        {
             MeshDataThread(mapData, lod, callback);
         };
 
@@ -134,9 +140,9 @@ public class MapGenerator : MonoBehaviour
     {
         float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize + 2, mapChunkSize + 2, noiseData.seed, noiseData.noiseScale, noiseData.octaves, noiseData.persistance, noiseData.lacunarity, center + noiseData.offset, noiseData.normalizeMode);
 
-        if(terrainData.useFalloff)
-        {   
-            if(falloffMap == null)
+        if (terrainData.useFalloff)
+        {
+            if (falloffMap == null)
             {
                 falloffMap = FalloffGenerator.GenerateFalloffMap(mapChunkSize + 2);
             }
@@ -160,19 +166,19 @@ public class MapGenerator : MonoBehaviour
 
     void OnValidate()
     {
-        if(terrainData != null)
+        if (terrainData != null)
         {
             terrainData.OnValuesUpdated -= OnValuesUpdated;
             terrainData.OnValuesUpdated += OnValuesUpdated;
         }
 
-        if(noiseData != null)
+        if (noiseData != null)
         {
             noiseData.OnValuesUpdated -= OnValuesUpdated;
             noiseData.OnValuesUpdated += OnValuesUpdated;
         }
 
-        if(textureData != null)
+        if (textureData != null)
         {
             textureData.OnValuesUpdated -= OnTextureValuesUpdated;
             textureData.OnValuesUpdated += OnTextureValuesUpdated;
