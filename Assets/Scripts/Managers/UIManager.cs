@@ -172,7 +172,7 @@ public class UIManager : SingletonBehaviour<UIManager>
 
             sequence.Play().OnComplete(() =>
             {
-                // Reset the transform position of idleObjectParent
+                // Reset the transform sampleCenter of idleObjectParent
                 idleObjectParent.anchoredPosition = idleParentinitialPosition;
                 idleObjectParent.transform.rotation = idlePanelRotation;
 

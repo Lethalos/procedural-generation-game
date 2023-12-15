@@ -18,7 +18,7 @@ public class CameraManager : MonoBehaviour
     {
         mainCamera = Camera.main;
         originalFieldOfView = mainCamera.fieldOfView; // Store the original field of view of the camera
-        originalCameraPosition = mainCamera.transform.position; // Store the original position of the camera
+        originalCameraPosition = mainCamera.transform.position; // Store the original sampleCenter of the camera
 
 
 
@@ -72,7 +72,7 @@ public class CameraManager : MonoBehaviour
         {
             t += Time.deltaTime * zoomInSpeed;
 
-            // Interpolate the camera's position towards the desired position
+            // Interpolate the camera's sampleCenter towards the desired sampleCenter
             mainCamera.transform.position = Vector3.Lerp(startPosition, desiredPosition, t);
 
             // Keep the camera's rotation unchanged
@@ -106,7 +106,7 @@ public class CameraManager : MonoBehaviour
         {
             t += Time.deltaTime * zoomOutSpeed;
 
-            // Interpolate the camera's position towards the desired position
+            // Interpolate the camera's sampleCenter towards the desired sampleCenter
             mainCamera.transform.position = Vector3.Lerp(startPosition, desiredPosition, t);
 
             // Smoothly interpolate the camera's field of view towards the original value

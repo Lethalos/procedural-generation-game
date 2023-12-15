@@ -93,13 +93,13 @@ Material:
     - _FogColorStart3: 10
     - _FogColorStart4: 30
     - _FogDensity: 2
-    - _FogDepthMultiplier: 1
+    - _FogDepthMultiplier: 1.03
     - _FogDepthMultiplier1: 1
     - _FogIntensity: 1
     - _FogIntensity1: 1
     - _FogOffset: 0.85
     - _FogOffset1: 1
-    - _FogSmoothness: 285.26398
+    - _FogSmoothness: 222979.03
     - _FogSmoothness1: 100
     - _GlossMapScale: 1
     - _Glossiness: 0.5

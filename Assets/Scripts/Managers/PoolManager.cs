@@ -375,12 +375,12 @@ public class PoolManager : SingletonBehaviour<PoolManager>
                     {
                         obj.SetActive(true);
 
-                        // Calculate the desired position based on the index relative to the clicked object
+                        // Calculate the desired sampleCenter based on the index relative to the clicked object
                         int indexDifference = i - (objectCount / 2);
                         float offset = 0.6f; // Adjust the spacing between objects as needed
                         Vector3 position = GetPrefabPosition(clickedObjectType);
 
-                        // Assign left, right, or center position based on the index
+                        // Assign left, right, or center sampleCenter based on the index
                         if (i == 0)
                             position.x -= offset; // First object is on the left
                         else if (i == 1)
@@ -420,22 +420,22 @@ public class PoolManager : SingletonBehaviour<PoolManager>
     //                    {
     //                        obj.SetActive(true);
 
-    //                        // Calculate the desired position based on the index relative to the clicked object
+    //                        // Calculate the desired sampleCenter based on the index relative to the clicked object
     //                        int indexDifference = i - (objectCount / 2);
     //                        float offset = 0.6f; // Adjust the spacing between objects as needed
-    //                        Vector3 position = GetPrefabPosition(clickedObjectType);
+    //                        Vector3 sampleCenter = GetPrefabPosition(clickedObjectType);
 
-    //                        // Assign left, right, or center position based on the index
+    //                        // Assign left, right, or center sampleCenter based on the index
     //                        if (i == 0)
-    //                            position.x -= offset; // First object is on the left
+    //                            sampleCenter.x -= offset; // First object is on the left
     //                        else if (i == 1)
-    //                            position.x += offset; // Second object is on the right
+    //                            sampleCenter.x += offset; // Second object is on the right
     //                        else if (i % 2 == 0)
-    //                            position.x -= Mathf.CeilToInt(indexDifference / 2f) * offset; // Even-indexed objects are centered to the left
+    //                            sampleCenter.x -= Mathf.CeilToInt(indexDifference / 2f) * offset; // Even-indexed objects are centered to the left
     //                        else
-    //                            position.x += Mathf.CeilToInt((indexDifference - 1) / 2f) * offset; // Odd-indexed objects are centered to the right
+    //                            sampleCenter.x += Mathf.CeilToInt((indexDifference - 1) / 2f) * offset; // Odd-indexed objects are centered to the right
 
-    //                        StartCoroutine(ChangePositionWithDelay(obj, position, 1f));
+    //                        StartCoroutine(ChangePositionWithDelay(obj, sampleCenter, 1f));
     //                    }
     //                }
     //            }

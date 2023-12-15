@@ -4,7 +4,7 @@ public class PlaneFlying : MonoBehaviour
 {
     public Vector3 flightDirection = Vector3.right;  // Set the desired flight direction
 
-    private Vector3 initialPosition;  // Stores the initial position of the airplane
+    private Vector3 initialPosition;  // Stores the initial sampleCenter of the airplane
     private bool isFlying = false;  // Indicates if the airplane is currently flying
     public bool triggerEntered = false;
     public float speed=0.5f;
@@ -15,7 +15,7 @@ public class PlaneFlying : MonoBehaviour
 
     private void Start()
     {
-        // Store the initial position of the airplane
+        // Store the initial sampleCenter of the airplane
         initialPosition = transform.position;
        
     }
@@ -37,7 +37,7 @@ public class PlaneFlying : MonoBehaviour
     
     public void ResetPosition()
     {
-        // Reset the airplane's position and any other necessary properties
+        // Reset the airplane's sampleCenter and any other necessary properties
         transform.position = initialPosition;
     }
 

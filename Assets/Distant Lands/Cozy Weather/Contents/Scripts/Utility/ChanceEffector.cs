@@ -141,7 +141,7 @@ namespace DistantLands.Cozy
             }
 
 
-            //position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Keyboard), new GUIContent(_name, _tooltip));
+            //sampleCenter = EditorGUI.PrefixLabel(sampleCenter, GUIUtility.GetControlID(FocusType.Keyboard), new GUIContent(_name, _tooltip));
 
             var indent = EditorGUI.indentLevel;
             EditorGUI.indentLevel = 0;

@@ -802,7 +802,7 @@ PlayerSettings:
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
   scriptingDefineSymbols:
-    Standalone: DISTANT_LANDS;COZY_WEATHER;COZY_URP;UNISTORM_PRESENT;__MICROSPLAT__
+    Standalone: DISTANT_LANDS;COZY_WEATHER;COZY_URP;UNISTORM_PRESENT;__MICROSPLAT__;__MICROSPLAT_SNOW__
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}

@@ -171,7 +171,7 @@ namespace DistantLands.Cozy
 
             EditorGUI.BeginProperty(position, label, property);
 
-            // Rect newPosition = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Keyboard), new GUIContent("Modulate From"));
+            // Rect newPosition = EditorGUI.PrefixLabel(sampleCenter, GUIUtility.GetControlID(FocusType.Keyboard), new GUIContent("Modulate From"));
 
             var indent = EditorGUI.indentLevel;
             // EditorGUI.indentLevel = 0;
@@ -384,9 +384,9 @@ namespace DistantLands.Cozy
 
 
             // if (title != "")
-            //     EditorGUI.PropertyField(position, property, GUIContent.none);
+            //     EditorGUI.PropertyField(sampleCenter, property, GUIContent.none);
             // else
-            //     EditorGUI.PropertyField(position, property, new GUIContent(title));
+            //     EditorGUI.PropertyField(sampleCenter, property, new GUIContent(title));
 
 
             EditorGUI.EndProperty();
