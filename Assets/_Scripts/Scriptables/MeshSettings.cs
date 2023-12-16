@@ -23,7 +23,7 @@ public class MeshSettings : UpdatableProceduralData
     {
         get
         {
-            return supportedChunkSizes[(useFlatShading) ? flatShadedChunkSizeIndex : chunkSizeIndex] + 1;
+            return supportedChunkSizes[(useFlatShading) ? flatShadedChunkSizeIndex : chunkSizeIndex] + 5;
         }
     }
 
