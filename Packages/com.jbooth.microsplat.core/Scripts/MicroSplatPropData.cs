@@ -361,33 +361,6 @@ namespace JBooth.MicroSplat
          SetValue(textureIndex, x, y, value);
       }
 
-      public Color[] GetAllValues(int textureIndex)
-      {
-         RevisionData();
-         Color[] c = new Color[sMaxAttributes];
-         for (int i = 0; i < sMaxAttributes; ++i)
-         {
-            c[i] = GetValue(textureIndex, i);
-         }
-         return c;
-      }
-
-      public void SetAllValues( int textureIndex, Color[] c)
-      {
-         RevisionData();
-#if UNITY_EDITOR
-         UnityEditor.Undo.RecordObject(this, "Changed Value");
-#endif
-         for (int i = 0; i < c.Length; ++i)
-         {
-            SetValue(textureIndex, i, c[i]);
-         }
-
-#if UNITY_EDITOR
-         UnityEditor.EditorUtility.SetDirty(this);
-#endif
-      }
-
       public Texture2D GetTexture()
       {
          RevisionData();

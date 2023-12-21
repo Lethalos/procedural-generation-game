@@ -5,6 +5,8 @@
 
 using UnityEngine;
 using System.Collections.Generic;
+using System.Reflection;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -33,7 +35,7 @@ namespace DistantLands.Cozy.Data
 
             public bool expanded = false;
             public enum ModulationSource { dayPercent, yearPercent, precipitation, temperature, snowAmount, rainAmount }
-            public enum ModulationTarget { terrainLayerColor, materialColor, materialValue, globalColor, globalValue }
+            public enum ModulationTarget { terrainLayerColor, terrainLayerTint, materialColor, materialValue, globalColor, globalValue }
             [Tooltip("The source that will modulate the target.")]
             public ModulationSource modulationSource;
             [Tooltip("The target type that will be modulated.")]
@@ -73,6 +75,7 @@ namespace DistantLands.Cozy.Data
         SerializedProperty snowColor;
         SerializedProperty puddleScale;
         MaterialManagerProfile prof;
+        SerializedProperty modulatedValues;
 
         public static bool modulatedValuesOpen;
         public static bool globalOpen;
@@ -84,6 +87,7 @@ namespace DistantLands.Cozy.Data
             snowNoiseSize = serializedObject.FindProperty("snowNoiseSize");
             snowColor = serializedObject.FindProperty("snowColor");
             puddleScale = serializedObject.FindProperty("puddleScale");
+            modulatedValues = serializedObject.FindProperty("modulatedValues");
             prof = (MaterialManagerProfile)target;
 
         }
@@ -93,57 +97,43 @@ namespace DistantLands.Cozy.Data
         {
 
             serializedObject.Update();
-
-
-            EditorGUI.indentLevel++;
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("modulatedValues"), true);
-
-            EditorGUI.indentLevel--;
-
-
-
-            EditorGUILayout.Space();
-
-            EditorGUILayout.LabelField("Global Snow Settings", EditorStyles.boldLabel);
-            EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(snowTexture);
-            EditorGUILayout.PropertyField(snowNoiseSize);
-            EditorGUILayout.PropertyField(snowColor);
-            EditorGUI.indentLevel--;
-
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Global Rain Settings", EditorStyles.boldLabel);
-            EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(puddleScale);
-            EditorGUI.indentLevel--;
-
-            serializedObject.ApplyModifiedProperties();
-
-        }
-
-
-        public void DisplayInCozyWindow()
-        {
-
-            serializedObject.Update();
-
-
-            modulatedValuesOpen = EditorGUILayout.BeginFoldoutHeaderGroup(modulatedValuesOpen, "    Modulated Values", EditorUtilities.FoldoutStyle());
+            modulatedValuesOpen = EditorGUILayout.BeginFoldoutHeaderGroup(modulatedValuesOpen, "    Modulated Values", EditorUtilities.FoldoutStyle);
             EditorGUILayout.EndFoldoutHeaderGroup();
 
             if (modulatedValuesOpen)
             {
                 EditorGUI.indentLevel++;
+                for (int i = 0; i < modulatedValues.arraySize; i++)
+                {
+                    EditorGUILayout.PropertyField(modulatedValues.GetArrayElementAtIndex(i));
+                    if (modulatedValues.GetArrayElementAtIndex(i).FindPropertyRelative("expanded").boolValue)
+                    {
+                        EditorGUI.indentLevel++;
+                        EditorGUILayout.BeginHorizontal();
+                        if (GUILayout.Button("Add New"))
+                        {
+                            modulatedValues.InsertArrayElementAtIndex(i + 1);
+                        }
+                        if (GUILayout.Button("Remove"))
+                            modulatedValues.DeleteArrayElementAtIndex(i);
 
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("modulatedValues"));
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.Space();
+                        EditorGUI.indentLevel--;
+                    }
+                }
 
                 EditorGUI.indentLevel--;
+
+                if (GUILayout.Button("Add New"))
+                {
+                    modulatedValues.InsertArrayElementAtIndex(modulatedValues.arraySize);
+                }
             }
 
 
 
-            globalOpen = EditorGUILayout.BeginFoldoutHeaderGroup(globalOpen, "    Global Values", EditorUtilities.FoldoutStyle());
+            globalOpen = EditorGUILayout.BeginFoldoutHeaderGroup(globalOpen, "    Global Values", EditorUtilities.FoldoutStyle);
             EditorGUILayout.EndFoldoutHeaderGroup();
 
             if (globalOpen)
@@ -165,8 +155,15 @@ namespace DistantLands.Cozy.Data
                 EditorGUI.indentLevel--;
                 EditorGUI.indentLevel--;
             }
-
             serializedObject.ApplyModifiedProperties();
+
+        }
+
+
+        public void DisplayInCozyWindow()
+        {
+
+            OnInspectorGUI();
 
         }
 

@@ -26,72 +26,32 @@ namespace DistantLands.Cozy.Data
         public float windSpeed;
         [Range(0, 10)]
         public float windChangeSpeed = 1;
-        public float weight;
-        CozyWeather weather;
+        CozyWindModule windModule;
 
-
-        public override void PlayEffect()
+        public override void PlayEffect(float weight)
         {
-
-            weight = 1;
-        }
-
-        public override void PlayEffect(float i)
-        {
-            
-
-            if (!weather)
-                if (!InitializeEffect(VFXMod))
+            if (!windModule && weatherSphere)
+                if (!InitializeEffect(weatherSphere))
                     return;
 
-            if (i <= 0.03f)
-            {
-                StopEffect();
-                return;
-            }
-            weight = Mathf.Clamp01(transitionTimeModifier.Evaluate(i));
+            windModule.windAmount += windAmount * weight;
+            windModule.windSpeed += windSpeed * weight;
+            windModule.windChangeSpeed += windChangeSpeed * weight;
         }
 
-        public override void StopEffect()
-        {
-            weight = 0;
-        }
-
-        public override bool InitializeEffect(VFXModule VFX)
+        public override bool InitializeEffect(CozyWeather weather)
         {
 
+            weatherSphere = weather ? weather : CozyWeather.instance;
 
-
-            if (VFX == null)
-                VFX = CozyWeather.instance.VFX;
-
-
-            VFXMod = VFX;
-
-            if (!VFX.windManager.isEnabled)
-            {
-
+            if (!weatherSphere.windModule)
                 return false;
 
-            }
-
-
-            if (VFX)
-            {
-                VFX.windManager.windFXes.Add(this);
-                weather = VFX.weatherSphere;
-            }
+            windModule = weatherSphere.windModule;
 
             return true;
 
         }
-
-        public override void DeinitializeEffect()
-        {
-            
-        }
-
-
     }
 
 #if UNITY_EDITOR

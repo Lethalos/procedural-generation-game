@@ -446,11 +446,10 @@ namespace JBooth.MicroSplat
             }
          }
 #endif
-         bool isMega = false;
+
 #if __MICROSPLAT_MEGA__
-         isMega = shaderType == Workflow.MegaSplatTerrain || shaderType == Workflow.MegaSplatMesh;
+         if (shaderType != Workflow.MegaSplatMesh && shaderType != Workflow.MegaSplatTerrain)
 #endif
-         if (!isMega)
          {
             maxTextureCount = (MaxTextureCount)EditorGUILayout.EnumPopup (CMaxTexCount, maxTextureCount);
          }
@@ -459,20 +458,17 @@ namespace JBooth.MicroSplat
             maxTextureCount = max;
          }
 
-         if (!isMega)
+         var mat = MicroSplatShaderGUI.targetMat;
+         if (mat != null && mat.HasProperty("_Diffuse"))
          {
-            var mat = MicroSplatShaderGUI.targetMat;
-            if (mat != null && mat.HasProperty("_Diffuse"))
+            var ta = mat.GetTexture ("_Diffuse") as Texture2DArray;
+            if (ta != null && ta.depth > (int)maxTextureCount)
             {
-               var ta = mat.GetTexture("_Diffuse") as Texture2DArray;
-               if (ta != null && ta.depth > (int)maxTextureCount)
-               {
-                  EditorGUILayout.HelpBox("Max Texture Count is lower than the number of textures in the array. This will prevent you from painting those textures, please increase this value", MessageType.Warning);
-               }
-               if (ta != null && ta.depth < ((int)maxTextureCount) - 4)
-               {
-                  EditorGUILayout.HelpBox("Max Texture Count is " + (int)maxTextureCount + " but your array only has " + ta.depth + " textures, this is wasting performance", MessageType.Warning);
-               }
+               EditorGUILayout.HelpBox ("Max Texture Count is lower than the number of textures in the array. This will prevent you from painting those textures, please increase this value", MessageType.Warning);
+            }
+            if (ta != null && ta.depth < ((int)maxTextureCount)-4)
+            {
+               EditorGUILayout.HelpBox("Max Texture Count is " + (int)maxTextureCount + " but your array only has " + ta.depth + " textures, this is wasting performance", MessageType.Warning);
             }
          }
       }

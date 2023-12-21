@@ -37,7 +37,7 @@ Shader "Hidden/MicroSplat/HeightFromNormal"
           
       fixed4 frag(v2f_img i) : SV_Target
       {
-         half2 n0 = tex2Dbias(_MainTex, float4(i.uv, 0, 0)).ga;
+         half2 n0 = tex2Dbias(_MainTex, float4(i.uv, 0, 0)).xy;
          half n = BlendOverlay(n0.x, n0.y);
          return fixed4(n,n,n,n);
       }

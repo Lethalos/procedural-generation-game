@@ -4,6 +4,9 @@ using UnityEngine;
 #if THE_VEGETATION_ENGINE
 using TheVegetationEngine;
 #endif
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace DistantLands.Cozy
 {
@@ -22,24 +25,11 @@ namespace DistantLands.Cozy
 
 #endif
 
-
-        void OnEnable()
-        {
-            if (GetComponent<CozyWeather>())
-            {
-
-                GetComponent<CozyWeather>().InitializeModule(typeof(CozyTVEModule));
-                DestroyImmediate(this);
-                Debug.LogWarning("Add modules in the settings tab in COZY 2!");
-                return;
-
-            }
-        }
         // Start is called before the first frame update
         void Awake()
         {
 
-            SetupModule();
+            InitializeModule();
 
 #if THE_VEGETATION_ENGINE
             if (updateFrequency == UpdateFrequency.onAwake)
@@ -49,13 +39,13 @@ namespace DistantLands.Cozy
         }
 
 #if THE_VEGETATION_ENGINE
-        public override void SetupModule()
+        public override void InitializeModule()
         {
 
             if (!enabled)
                 return;
 
-            weatherSphere = CozyWeather.instance;
+            base.InitializeModule();
 
             if (!weatherSphere)
             {
@@ -105,21 +95,72 @@ namespace DistantLands.Cozy
         public void UpdateTVE()
         {
 
-            if (weatherSphere.cozyMaterials)
+            if (weatherSphere.climateModule)
             {
-                globalControl.globalWetness = weatherSphere.cozyMaterials.wetness;
-                globalControl.globalOverlay = weatherSphere.cozyMaterials.snowAmount;
+                globalControl.globalWetness = weatherSphere.climateModule.wetness;
+                globalControl.globalOverlay = weatherSphere.climateModule.snowAmount;
             }
 
-            globalControl.seasonControl = weatherSphere.GetCurrentYearPercentage() * 4;
+            globalControl.seasonControl = weatherSphere.timeModule.yearPercentage * 4;
 
-            if (weatherSphere.VFX)
+            if (weatherSphere.windModule)
             {
-                globalMotion.windPower = weatherSphere.VFX.windManager.windAmount;
-                globalMotion.transform.LookAt(globalMotion.transform.position + weatherSphere.VFX.windManager.windDirection, Vector3.up);
+                globalMotion.windPower = weatherSphere.windModule.windAmount;
+                globalMotion.transform.LookAt(globalMotion.transform.position + weatherSphere.windModule.WindDirection, Vector3.up);
             }
         }
 
 #endif
     }
+#if UNITY_EDITOR
+    [CustomEditor(typeof(CozyTVEModule))]
+    [CanEditMultipleObjects]
+    public class E_TVEIntegration : E_CozyModule
+    {
+        SerializedProperty updateFrequency;
+        CozyTVEModule module;
+
+
+        void OnEnable()
+        {
+
+        }
+
+        public override GUIContent GetGUIContent()
+        {
+
+            return new GUIContent("    TVE", (Texture)Resources.Load("Boxophobic"), "Links the COZY system with the vegetation engine by BOXOPHOBIC.");
+
+        }
+
+        public override void OpenDocumentationURL()
+        {
+            Application.OpenURL("https://distant-lands.gitbook.io/cozy-stylized-weather-documentation/how-it-works/modules/the-vegetation-engine-tve-module");
+        }
+
+        public override void DisplayInCozyWindow()
+        {
+            serializedObject.Update();
+
+            if (module == null)
+                module = (CozyTVEModule)target;
+
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("updateFrequency"));
+            serializedObject.ApplyModifiedProperties();
+
+#if THE_VEGETATION_ENGINE
+            if (!module.globalControl || !module.globalMotion)
+            {
+                EditorGUILayout.Space(20);
+                EditorGUILayout.HelpBox("Make sure that you have active TVE Global Motion and TVE Global Control objects in your scene!", MessageType.Warning);
+
+            }
+#else
+            EditorGUILayout.Space(20);
+            EditorGUILayout.HelpBox("The Vegetation Engine is not currently in this project! Please make sure that it has been properly downloaded before using this module.", MessageType.Warning);
+
+#endif
+        }
+    }
+#endif
 }

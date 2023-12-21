@@ -27,7 +27,7 @@ namespace DistantLands.Cozy.Data
         [Tooltip("The weather profile that this profile will forecast initially.")]
         public WeatherProfile initialProfile;
         [Tooltip("The weather profiles that this profile will forecast initially.")]
-        public List<CozyWeather.WeatherPattern> initialForecast;
+        public List<CozyEcosystem.WeatherPattern> initialForecast;
 
         public enum StartWeatherWith { random, initialProfile, initialForecast }
         public StartWeatherWith startWeatherWith;

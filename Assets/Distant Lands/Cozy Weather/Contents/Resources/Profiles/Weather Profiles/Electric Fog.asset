@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: Electric Fog
   m_EditorClassIdentifier: 
-  weatherTime: {x: 45, y: 90}
-  likelihood: 0.316
+  minWeatherTime: 0.125
+  maxWeatherTime: 0.33333334
+  likelihood: 0.7
   forecastNext:
   - {fileID: 11400000, guid: 3500d156aa5168944b5dd4b8e84ff00c, type: 2}
   - {fileID: 11400000, guid: 971a290a51fcdf54f93efbe42a8e86a7, type: 2}
@@ -44,21 +45,10 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  cloudSettings:
-    cumulusCoverage: 2
-    altocumulusCoverage: 0
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 0
-    cirrusCoverage: 0
-    nimbusCoverage: 0
-    nimbusVariation: 0.9
-    nimbusHeightEffect: 1
-    borderHeight: 0.5
-    borderVariation: 0.9
-    borderEffect: 1
-  fogDensity: 2
   FX:
-  - {fileID: 11400000, guid: 16b2b4bfc6a845a4786e1d824edca7c4, type: 2}
-  - {fileID: 11400000, guid: 3ca682fa89b9e784087c74f4b948d1d7, type: 2}
+  - {fileID: 11400000, guid: f73311181721394419e3d6d528ea6800, type: 2}
   - {fileID: 11400000, guid: 51b57d5dc6817e94d9a06ac2275894e2, type: 2}
   - {fileID: 11400000, guid: 0fd424003762fd243bc32a39a3fbd0d8, type: 2}
+  - {fileID: 11400000, guid: 37958e75fc835c242a6ab218c3f7c868, type: 2}
+  - {fileID: 11400000, guid: bbd5ed3ba408e7b44901ea2bcaa767fe, type: 2}
+  - {fileID: 11400000, guid: ca58f4622d4c4954dac92a21699c672d, type: 2}

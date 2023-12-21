@@ -4,6 +4,8 @@
 
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Rendering;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -80,6 +82,23 @@ namespace DistantLands.Cozy.Data
         [CozyPropertyType(true)]
         [Tooltip("Sets the color of the fog flare.")]
         public CustomProperty fogFlareColor;
+        [CozyPropertyType(true)]
+        [Tooltip("Sets the color of the moon flare for the fog.")]
+        public CustomProperty fogMoonFlareColor;
+        [CozyPropertyType(false, 0, 1)]
+        [Tooltip("Sets the smoothness of the fog.")]
+        public CustomProperty fogSmoothness;
+
+        public Vector3 fogVariationDirection;
+        [CozyPropertyType(false, 0, 30)]
+        [Tooltip("Sets the variation scale of the fog.")]
+        public CustomProperty fogVariationScale;
+        [CozyPropertyType(false, 0, 1)]
+        [Tooltip("Sets the variation amount.")]
+        public CustomProperty fogVariationAmount;
+        [Tooltip("Sets the variation distance of the fog.")]
+        [CozyPropertyType(false, 0, 200)]
+        public CustomProperty fogVariationDistance;
 
 
 
@@ -87,13 +106,6 @@ namespace DistantLands.Cozy.Data
         [CozyPropertyType(false, 0, 1)]
         [Tooltip("Controls the exponent used to modulate from the horizon color to the zenith color of the sky.")]
         public CustomProperty gradientExponent;
-        [CozyPropertyType(false, 0, 1)]
-        public CustomProperty atmosphereVariationMin;
-        [CozyPropertyType(false, 0, 1)]
-        public CustomProperty atmosphereVariationMax;
-        [CozyPropertyType(false, 0, 1)]
-        [Tooltip("Controls the atmospheric variation multiplier.")]
-        public CustomProperty atmosphereBias;
         [CozyPropertyType(false, 0, 5)]
         [Tooltip("Sets the size of the visual sun in the sky.")]
         public CustomProperty sunSize;
@@ -106,15 +118,18 @@ namespace DistantLands.Cozy.Data
         [Tooltip("Sets the color of the visual sun in the sky.")]
         [CozyPropertyType(true)]
         public CustomProperty sunColor;
+        [Tooltip("Sets the color of the visual moon in the sky (only impacts the global shader variable for the stylized moon material).")]
+        [CozyPropertyType(true)]
+        public CustomProperty moonColor;
 
 
-        [CozyPropertyType(false, 0, 100)]
+        [CozyPropertyType(false, 0, 1)]
         [Tooltip("Sets the falloff of the halo around the visual sun.")]
         public CustomProperty sunFalloff;
         [CozyPropertyType(true)]
         [Tooltip("Sets the color of the halo around the visual sun.")]
         public CustomProperty sunFlareColor;
-        [CozyPropertyType(false, 0, 100)]
+        [CozyPropertyType(false, 0, 1)]
         [Tooltip("Sets the falloff of the halo around the main moon.")]
         public CustomProperty moonFalloff;
         [CozyPropertyType(true)]
@@ -190,6 +205,26 @@ namespace DistantLands.Cozy.Data
 
 
         public Texture cloudTexture;
+        public Texture chemtrailsTexture;
+        public Texture cirrusCloudTexture;
+        public Texture cirrostratusCloudTexture;
+        public Texture altocumulusCloudTexture;
+        public Texture starMap;
+        public Texture galaxyMap;
+        public Texture galaxyStarMap;
+        public Texture galaxyVariationMap;
+        public Texture lightScatteringMap;
+
+        public Texture partlyCloudyLuxuryClouds;
+        public Texture mostlyCloudyLuxuryClouds;
+        public Texture overcastLuxuryClouds;
+        public Texture lowBorderLuxuryClouds;
+        public Texture highBorderLuxuryClouds;
+        public Texture lowNimbusLuxuryClouds;
+        public Texture midNimbusLuxuryClouds;
+        public Texture highNimbusLuxuryClouds;
+        public Texture luxuryVariation;
+
         [CozyPropertyType(true)]
         public CustomProperty cloudTextureColor;
         [CozyPropertyType(false, 0, 10)]
@@ -203,7 +238,20 @@ namespace DistantLands.Cozy.Data
         [CozyPropertyType(false, 0, 3)]
         public CustomProperty textureAmount;
         public Vector3 texturePanDirection;
-
+#if COZY_URP
+        [System.Serializable]
+        public class URPFlare
+        {
+            public LensFlareDataSRP flare;
+            public float intensity = 1;
+            public float scale = 1;
+            public AnimationCurve screenAttenuation;
+            public bool useOcclusion = true;
+            public float occlusionRadius = 0.5f;
+            public bool allowOffscreen = true;
+        }
+        public URPFlare sunFlare;
+#endif
 
     }
 
@@ -217,10 +265,6 @@ namespace DistantLands.Cozy.Data
         Vector2 scrollPos;
 
         public int windowNum;
-        public Texture icon1;
-        public Texture icon2;
-        public Texture icon3;
-        public Texture icon4;
         public bool tooltips;
 
         public CozyWeather defaultWeather;
@@ -231,12 +275,6 @@ namespace DistantLands.Cozy.Data
 
         void OnEnable()
         {
-
-            icon1 = Resources.Load<Texture>("Atmosphere");
-            icon2 = Resources.Load<Texture>("Cloud");
-            icon3 = Resources.Load<Texture>("CozyMoon");
-            icon4 = Resources.Load<Texture>("CozyTrigger");
-
             if (CozyWeather.instance)
                 defaultWeather = CozyWeather.instance;
 
@@ -258,10 +296,10 @@ namespace DistantLands.Cozy.Data
             serializedObject.Update();
             tooltips = EditorPrefs.GetBool("CZY_Tooltips", true);
 
-            serializedObject.FindProperty("win1").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("win1").boolValue,
-                new GUIContent("    Atmosphere & Lighting", "Skydome, fog, and lighting settings."), EditorUtilities.FoldoutStyle());
+            E_CozyAtmosphereModule.atmosphereOptionsWindow = EditorGUILayout.BeginFoldoutHeaderGroup(E_CozyAtmosphereModule.atmosphereOptionsWindow,
+                new GUIContent("    Atmosphere & Lighting", "Skydome, fog, and lighting settings."), EditorUtilities.FoldoutStyle);
 
-            if (serializedObject.FindProperty("win1").boolValue)
+            if (E_CozyAtmosphereModule.atmosphereOptionsWindow)
             {
 
                 DrawAtmosphereTab(cozyWeather);
@@ -270,10 +308,22 @@ namespace DistantLands.Cozy.Data
 
             EditorGUILayout.EndFoldoutHeaderGroup();
 
-            serializedObject.FindProperty("win2").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("win2").boolValue,
-                            new GUIContent("    Clouds", "Cloud color, generation, and variation settings."), EditorUtilities.FoldoutStyle());
+            E_CozyAtmosphereModule.fogOptionsWindow = EditorGUILayout.BeginFoldoutHeaderGroup(E_CozyAtmosphereModule.fogOptionsWindow,
+                            new GUIContent("    Fog", "Manage fog settings."), EditorUtilities.FoldoutStyle);
 
-            if (serializedObject.FindProperty("win2").boolValue)
+            if (E_CozyAtmosphereModule.fogOptionsWindow)
+            {
+
+                DrawFogTab(cozyWeather);
+
+            }
+
+            EditorGUILayout.EndFoldoutHeaderGroup();
+
+            E_CozyAtmosphereModule.cloudsOptionsWindow = EditorGUILayout.BeginFoldoutHeaderGroup(E_CozyAtmosphereModule.cloudsOptionsWindow,
+                            new GUIContent("    Clouds", "Cloud color, generation, and variation settings."), EditorUtilities.FoldoutStyle);
+
+            if (E_CozyAtmosphereModule.cloudsOptionsWindow)
             {
 
                 DrawCloudsTab(cozyWeather);
@@ -283,10 +333,10 @@ namespace DistantLands.Cozy.Data
             EditorGUILayout.EndFoldoutHeaderGroup();
 
 
-            serializedObject.FindProperty("win3").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("win3").boolValue,
-                            new GUIContent("    Celestials & VFX", "Sun, moon, and light FX settings."), EditorUtilities.FoldoutStyle());
+            E_CozyAtmosphereModule.celestialsOptionsWindow = EditorGUILayout.BeginFoldoutHeaderGroup(E_CozyAtmosphereModule.celestialsOptionsWindow,
+                            new GUIContent("    Celestials & VFX", "Sun, moon, and light FX settings."), EditorUtilities.FoldoutStyle);
 
-            if (serializedObject.FindProperty("win3").boolValue)
+            if (E_CozyAtmosphereModule.celestialsOptionsWindow)
             {
 
                 DrawCelestialsTab(cozyWeather);
@@ -306,20 +356,13 @@ namespace DistantLands.Cozy.Data
         void DrawAtmosphereTab(CozyWeather cozyWeather)
         {
 
-            GUIStyle labelStyle = new GUIStyle(GUI.skin.GetStyle("Label"));
-            labelStyle.fontStyle = FontStyle.Bold;
-
-            bool advancedSky = cozyWeather.skyStyle == CozyWeather.SkyStyle.desktop;
+            GUIStyle labelStyle = new GUIStyle(GUI.skin.GetStyle("Label"))
+            {
+                fontStyle = FontStyle.Bold
+            };
 
             if (tooltips)
                 EditorGUILayout.HelpBox("Interpolate controls change the value depending on the time of day. These range from 00:00 to 23:59, which means that morning is about 25% through the curve, midday 50%, evening 75%, etc. \n \n Constant controls set the value to a single value that remains constant regardless of the time of day.", MessageType.Info);
-
-
-            Color col = EditorGUIUtility.isProSkin
-                ? proCol
-                : unityCol;
-
-
 
             EditorGUILayout.LabelField(" Skydome Settings", labelStyle);
             EditorGUI.indentLevel++;
@@ -328,50 +371,33 @@ namespace DistantLands.Cozy.Data
             EditorGUILayout.PropertyField(serializedObject.FindProperty("skyHorizonColor"), false);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("gradientExponent"), false);
 
-            if (advancedSky)
-            {
-
-                EditorGUILayout.Space(5);
-                float min = serializedObject.FindProperty("atmosphereVariationMin").FindPropertyRelative("floatVal").floatValue;
-                float max = serializedObject.FindProperty("atmosphereVariationMax").FindPropertyRelative("floatVal").floatValue;
-
-                Rect position = EditorGUILayout.GetControlRect();
-                float startPos = position.width / 2.5f;
-                var titleRect = new Rect(position.x, position.y, 70, position.height);
-                EditorGUI.PrefixLabel(titleRect, new GUIContent("Atmosphere Variation"));
-                var label1Rect = new Rect();
-                var label2Rect = new Rect();
-                var sliderRect = new Rect();
-
-                if (position.width > 359)
-                {
-                    label1Rect = new Rect(startPos, position.y, 64, position.height);
-                    label2Rect = new Rect(position.width - 71, position.y, 64, position.height);
-                    sliderRect = new Rect(startPos + 56, position.y, (position.width - startPos) - 135, position.height);
-                    EditorGUI.MinMaxSlider(sliderRect, ref min, ref max, 0, 1);
-                }
-                else
-                {
-
-                    label1Rect = new Rect(position.width - 110, position.y, 50, position.height);
-                    label2Rect = new Rect(position.width - 72, position.y, 50, position.height);
-
-                }
-
-                min = EditorGUI.FloatField(label1Rect, (Mathf.Round(min * 100) / 100));
-                max = EditorGUI.FloatField(label2Rect, (Mathf.Round(max * 100) / 100));
-
-                if (min > max)
-                    min = max;
-
-                serializedObject.FindProperty("atmosphereVariationMin").FindPropertyRelative("floatVal").floatValue = min;
-                serializedObject.FindProperty("atmosphereVariationMax").FindPropertyRelative("floatVal").floatValue = max;
-
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("atmosphereBias"), false);
-            }
-
             EditorGUILayout.Space(5);
             EditorGUI.indentLevel--;
+            EditorGUILayout.LabelField(" Lighting Settings", labelStyle);
+            EditorGUI.indentLevel++;
+
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunlightColor"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("moonlightColor"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightHorizonColor"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightZenithColor"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightMultiplier"), false);
+            EditorGUI.indentLevel--;
+
+
+        }
+
+
+        void DrawFogTab(CozyWeather cozyWeather)
+        {
+
+            GUIStyle labelStyle = new GUIStyle(GUI.skin.GetStyle("Label"));
+            labelStyle.fontStyle = FontStyle.Bold;
+
+            if (tooltips)
+                EditorGUILayout.HelpBox("Interpolate controls change the value depending on the time of day. These range from 00:00 to 23:59, which means that morning is about 25% through the curve, midday 50%, evening 75%, etc. \n \n Constant controls set the value to a single value that remains constant regardless of the time of day.", MessageType.Info);
+
+
+            EditorGUILayout.Space(5);
             EditorGUILayout.LabelField(" Fog Settings", labelStyle);
             EditorGUI.indentLevel++;
 
@@ -398,6 +424,7 @@ namespace DistantLands.Cozy.Data
             serializedObject.FindProperty("fogStart4").floatValue = fogStart4;
 
             EditorGUILayout.PropertyField(serializedObject.FindProperty("fogHeight"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogSmoothness"), false);
 
             EditorGUILayout.Space(5);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("fogDensityMultiplier"), false);
@@ -406,6 +433,9 @@ namespace DistantLands.Cozy.Data
             EditorGUILayout.Space(5);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("fogFlareColor"), new GUIContent("Light Flare Color",
                 "Sets the color of the fog for a false \"light flare\" around the main sun directional light."), false);
+            EditorGUILayout.Space(5);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogMoonFlareColor"), new GUIContent("Moon Flare Color",
+                "Sets the color of the fog for a false \"light flare\" around the main moon directional light."), false);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("fogLightFlareIntensity"), new GUIContent("Light Flare Intensity",
                 "Modulates the brightness of the light flare."), false);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("fogLightFlareFalloff"), new GUIContent("Light Flare Falloff",
@@ -414,29 +444,18 @@ namespace DistantLands.Cozy.Data
                 "Sets the height divisor for the fog flare. High values sit the flare closer to the horizon, small values extend the flare into the sky."), false);
 
             EditorGUILayout.Space(5);
-            EditorGUI.indentLevel--;
-            EditorGUILayout.LabelField(" Lighting Settings", labelStyle);
-            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogVariationDirection"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogVariationScale"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogVariationAmount"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogVariationDistance"), false);
+            EditorGUILayout.Space(5);
 
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunlightColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("moonlightColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightHorizonColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightZenithColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightMultiplier"), false);
             EditorGUI.indentLevel--;
-
 
         }
 
-
         void DrawCloudsTab(CozyWeather cozyWeather)
         {
-
-            Material cloudShader = cozyWeather.cloudMesh.sharedMaterial;
-
-            Color col = EditorGUIUtility.isProSkin
-                ? proCol
-                : unityCol;
 
             if (tooltips)
                 EditorGUILayout.HelpBox("Interpolate controls change the value depending on the time of day. These range from 00:00 to 23:59, which means that morning is about 25% through the curve, midday 50%, evening 75%, etc. \n \n Constant controls set the value to a single value that remains constant regardless of the time of day.", MessageType.Info);
@@ -450,8 +469,8 @@ namespace DistantLands.Cozy.Data
 
 
             EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudColor"), new GUIContent("Cloud Color", "The main color of the unlit clouds."), false);
-            if (cloudShader.HasProperty("_AltoCloudColor"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("highAltitudeCloudColor"), new GUIContent("High Altitude Color", "The main color multiplier of the high altitude clouds. The cloud types affected are the cirrostratus and the altocumulus types."), false);
+
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("highAltitudeCloudColor"), new GUIContent("High Altitude Color", "The main color multiplier of the high altitude clouds. The cloud types affected are the cirrostratus and the altocumulus types."), false);
             EditorGUILayout.Space(5);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudHighlightColor"), new GUIContent("Sun Highlight Color", "The color multiplier for the clouds in a \"dot\" around the sun."), false);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudSunHighlightFalloff"), new GUIContent("Sun Highlight Falloff", "The falloff for the \"dot\" around the sun."), false);
@@ -462,47 +481,113 @@ namespace DistantLands.Cozy.Data
 
             EditorGUI.indentLevel--;
             EditorGUILayout.Space(10);
-            EditorGUILayout.LabelField(" Generation Settings", labelStyle);
+            if (cozyWeather.cloudStyle != CozyWeather.CloudStyle.singleTexture)
+
+                EditorGUILayout.LabelField(" Generation Settings", labelStyle);
             EditorGUI.indentLevel++;
-            if (cloudShader.HasProperty("_WindSpeed"))
+            if (!(cozyWeather.cloudStyle == CozyWeather.CloudStyle.singleTexture || cozyWeather.cloudStyle == CozyWeather.CloudStyle.luxury))
+            {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudWindSpeed"), new GUIContent("Wind Speed", "The speed at which the cloud generation will progress."), false);
-            if (cloudShader.HasProperty("_ClippingThreshold"))
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("clippingThreshold"), new GUIContent("Clipping Threshold", "The alpha that the clouds will clip to full alpha at. Default is 0.5"), false);
-            if (cloudShader.HasProperty("_MainCloudScale"))
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudMainScale"), new GUIContent("Main Scale", "The scale of the main perlin noise for the cumulus cloud type."), false);
-            if (cloudShader.HasProperty("_DetailScale"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudDetailScale"), new GUIContent("Detail Scale", "The scale of the secondary voronoi noise functions for the cumulus cloud type."), false);
-            if (cloudShader.HasProperty("_DetailAmount"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudDetailAmount"), new GUIContent("Detail Amount", "The multiplier for the secondary voronoi noise functions for the cumulus cloud type. Lower values give more cohesive cloud types."), false);
-            EditorGUILayout.Space(10);
-            if (cloudShader.HasProperty("_AltocumulusScale"))
+                if (cozyWeather.cloudStyle != CozyWeather.CloudStyle.ghibliDesktop && cozyWeather.cloudStyle != CozyWeather.CloudStyle.ghibliMobile)
+                {
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudDetailScale"), new GUIContent("Detail Scale", "The scale of the secondary voronoi noise functions for the cumulus cloud type."), false);
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudDetailAmount"), new GUIContent("Detail Amount", "The multiplier for the secondary voronoi noise functions for the cumulus cloud type. Lower values give more cohesive cloud types."), false);
+                }
+                EditorGUILayout.Space(10);
+                if (cozyWeather.cloudStyle == CozyWeather.CloudStyle.paintedSkies || cozyWeather.cloudStyle == CozyWeather.CloudStyle.soft)
+                {
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudThickness"), new GUIContent("Cloud Thickness"), false);
+                }
+                if (cozyWeather.cloudStyle == CozyWeather.CloudStyle.cozyDesktop || cozyWeather.cloudStyle == CozyWeather.CloudStyle.paintedSkies || cozyWeather.cloudStyle == CozyWeather.CloudStyle.soft)
+                {
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("acScale"), new GUIContent("Altocumulus Scale"), false);
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("cirroMoveSpeed"), new GUIContent("Cirrostratus Movement Speed"), false);
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("cirrusMoveSpeed"), new GUIContent("Cirrus Movement Speed"), false);
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("chemtrailsMoveSpeed"), new GUIContent("Chemtrails Movement Speed"), false);
+                }
+            }
+
+            if (cozyWeather.cloudStyle == CozyWeather.CloudStyle.ghibliDesktop || cozyWeather.cloudStyle == CozyWeather.CloudStyle.ghibliMobile)
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudCohesion"), new GUIContent("Cloud Cohesion"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("spherize"), new GUIContent("Sphere Distortion"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("shadowDistance"), new GUIContent("Shadow Distance"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudThickness"), new GUIContent("Cloud Thickness"), false);
+            }
+            if (cozyWeather.cloudStyle == CozyWeather.CloudStyle.cozyDesktop || cozyWeather.cloudStyle == CozyWeather.CloudStyle.paintedSkies || cozyWeather.cloudStyle == CozyWeather.CloudStyle.soft || cozyWeather.cloudStyle == CozyWeather.CloudStyle.singleTexture)
+            {
+                EditorGUI.indentLevel--;
+                EditorGUILayout.Space(10);
+                EditorGUILayout.LabelField(" Texture Settings", labelStyle);
+                EditorGUI.indentLevel++;
+            }
+            if (cozyWeather.cloudStyle == CozyWeather.CloudStyle.luxury)
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudWindSpeed"), new GUIContent("Wind Speed", "The speed at which the cloud generation will progress."), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudMainScale"), new GUIContent("Main Scale", "The scale of the main perlin noise for the cumulus cloud type."), false);
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("acScale"), new GUIContent("Altocumulus Scale"), false);
-            if (cloudShader.HasProperty("_CirrostratusMoveSpeed"))
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("cirroMoveSpeed"), new GUIContent("Cirrostratus Movement Speed"), false);
-            if (cloudShader.HasProperty("_CirrusMoveSpeed"))
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("cirrusMoveSpeed"), new GUIContent("Cirrus Movement Speed"), false);
-            if (cloudShader.HasProperty("_ChemtrailsMoveSpeed"))
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("chemtrailsMoveSpeed"), new GUIContent("Chemtrails Movement Speed"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("luxuryVariation"), false);
 
-            if (cloudShader.HasProperty("_CloudTexture"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudTexture"), new GUIContent("Cloud Texture"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("partlyCloudyLuxuryClouds"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("mostlyCloudyLuxuryClouds"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("overcastLuxuryClouds"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("lowBorderLuxuryClouds"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("highBorderLuxuryClouds"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("lowNimbusLuxuryClouds"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("midNimbusLuxuryClouds"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("highNimbusLuxuryClouds"), false);
+            }
+            if (cozyWeather.cloudStyle == CozyWeather.CloudStyle.cozyDesktop || cozyWeather.cloudStyle == CozyWeather.CloudStyle.luxury || cozyWeather.cloudStyle == CozyWeather.CloudStyle.paintedSkies || cozyWeather.cloudStyle == CozyWeather.CloudStyle.soft)
 
-            if (cloudShader.HasProperty("_TexturePanDirection"))
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("chemtrailsTexture"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("cirrusCloudTexture"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("cirrostratusCloudTexture"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("altocumulusCloudTexture"), false);
+            }
+
+            if (cozyWeather.cloudStyle == CozyWeather.CloudStyle.singleTexture)
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudTexture"), false);
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("texturePanDirection"), new GUIContent("Cloud Texture Pan Direction"), false);
-
+            }
             if (cozyWeather.cloudStyle == CozyWeather.CloudStyle.paintedSkies)
             {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudTexture"), false);
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudTextureColor"), new GUIContent("Texture Color Multiplier"), false);
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("textureAmount"), new GUIContent("Texture Amount"), false);
             }
-            if (cloudShader.HasProperty("_CloudCohesion"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudCohesion"), new GUIContent("Cloud Cohesion"), false);
-            if (cloudShader.HasProperty("_Spherize"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("spherize"), new GUIContent("Sphere Distortion"), false);
-            if (cloudShader.HasProperty("_ShadowingDistance"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("shadowDistance"), new GUIContent("Shadow Distance"), false);
-            if (cloudShader.HasProperty("_CloudThickness"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudThickness"), new GUIContent("Cloud Thickness"), false);
+
+            if (!cozyWeather.weatherModule)
+            {
+
+                EditorGUI.indentLevel--;
+                EditorGUILayout.Space(10);
+                EditorGUILayout.LabelField(" Current Settings", labelStyle);
+                EditorGUI.indentLevel++;
+                cozyWeather.cumulus = EditorGUILayout.Slider("Cumulus", cozyWeather.cumulus, 0, 2);
+                cozyWeather.altocumulus = EditorGUILayout.Slider("Altocumulus", cozyWeather.altocumulus, 0, 2);
+                cozyWeather.chemtrails = EditorGUILayout.Slider("Chemtrails", cozyWeather.chemtrails, 0, 2);
+                cozyWeather.cirrostratus = EditorGUILayout.Slider("Cirrostratus", cozyWeather.cirrostratus, 0, 2);
+                cozyWeather.cirrus = EditorGUILayout.Slider("Cirrus", cozyWeather.cirrus, 0, 2);
+                cozyWeather.nimbus = EditorGUILayout.Slider("Nimbus", cozyWeather.nimbus, 0, 2);
+                EditorGUI.indentLevel++;
+                cozyWeather.nimbusVariation = EditorGUILayout.Slider("Variation", cozyWeather.nimbusVariation, 0, 1);
+                cozyWeather.nimbusHeightEffect = EditorGUILayout.Slider("Height Effect", cozyWeather.nimbusHeightEffect, 0, 1);
+                EditorGUI.indentLevel--;
+                cozyWeather.borderHeight = EditorGUILayout.Slider("Border", cozyWeather.borderHeight, 0, 1);
+                EditorGUI.indentLevel++;
+                cozyWeather.borderVariation = EditorGUILayout.Slider("Variation", cozyWeather.borderVariation, 0, 1);
+                cozyWeather.borderEffect = EditorGUILayout.Slider("Effect", cozyWeather.borderEffect, -1, 1);
+                EditorGUI.indentLevel--;
+
+            }
+
 
             EditorGUI.indentLevel--;
 
@@ -511,13 +596,6 @@ namespace DistantLands.Cozy.Data
 
         void DrawCelestialsTab(CozyWeather cozyWeather)
         {
-
-
-            bool advancedSky = cozyWeather.skyStyle == CozyWeather.SkyStyle.desktop;
-
-            Color col = EditorGUIUtility.isProSkin
-                ? proCol
-                : unityCol;
 
             if (tooltips)
                 EditorGUILayout.HelpBox("Interpolate controls change the value depending on the time of day. These range from 00:00 to 23:59, which means that morning is about 25% through the curve, midday 50%, evening 75%, etc. \n \n Constant controls set the value to a single value that remains constant regardless of the time of day.", MessageType.Info);
@@ -531,20 +609,24 @@ namespace DistantLands.Cozy.Data
             EditorGUILayout.PropertyField(serializedObject.FindProperty("sunSize"), false);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("sunDirection"), false);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("sunPitch"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunFalloff"), new GUIContent("Sun Halo Falloff"), false);
+            if (!cozyWeather.timeModule)
+                cozyWeather.sunAngle = EditorGUILayout.Slider("Sun Angle", cozyWeather.sunAngle, 0, 1);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunFalloff"), new GUIContent("Sun Halo Falloff"), true);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("sunFlareColor"), new GUIContent("Sun Halo Color"), false);
+#if COZY_URP
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunFlare"), true);
+#endif
             EditorGUI.indentLevel--;
 
             EditorGUILayout.Space(16);
 
-            if (advancedSky)
-            {
-                EditorGUILayout.LabelField(" Moon Settings", labelStyle);
-                EditorGUI.indentLevel++;
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("moonFalloff"), new GUIContent("Moon Halo Falloff"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("moonFlareColor"), new GUIContent("Moon Halo Color"), false);
-                EditorGUI.indentLevel--;
-            }
+            EditorGUILayout.LabelField(" Moon Settings", labelStyle);
+            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("moonColor"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("moonFalloff"), new GUIContent("Moon Halo Falloff"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("moonFlareColor"), new GUIContent("Moon Halo Color"), false);
+            EditorGUI.indentLevel--;
+
 
 
             EditorGUILayout.Space(15);
@@ -552,23 +634,36 @@ namespace DistantLands.Cozy.Data
             EditorGUI.indentLevel++;
 
             EditorGUILayout.PropertyField(serializedObject.FindProperty("starColor"), false);
-
-            if (advancedSky)
+            if (cozyWeather.skyStyle == CozyWeather.SkyStyle.desktop)
             {
-                EditorGUILayout.Space(5);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxyIntensity"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxy1Color"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxy2Color"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxy3Color"), false);
-                EditorGUILayout.Space(5);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("lightScatteringColor"), false);
-                EditorGUILayout.Space(5);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("useRainbow"), false);
-                EditorGUI.BeginDisabledGroup(!serializedObject.FindProperty("useRainbow").boolValue);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("rainbowPosition"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("rainbowWidth"), false);
-                EditorGUI.EndDisabledGroup();
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("starMap"), false);
             }
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxyIntensity"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxy1Color"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxy2Color"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxy3Color"), false);
+            if (cozyWeather.skyStyle == CozyWeather.SkyStyle.desktop)
+            {
+
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxyMap"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxyStarMap"), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxyVariationMap"), false);
+            }
+            EditorGUILayout.Space(5);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("lightScatteringColor"), false);
+            if (cozyWeather.skyStyle == CozyWeather.SkyStyle.desktop)
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("lightScatteringMap"), false);
+            }
+            EditorGUILayout.Space(5);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("useRainbow"), false);
+            EditorGUI.BeginDisabledGroup(!serializedObject.FindProperty("useRainbow").boolValue);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("rainbowPosition"), false);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("rainbowWidth"), false);
+            EditorGUI.EndDisabledGroup();
+
             EditorGUI.indentLevel--;
 
 

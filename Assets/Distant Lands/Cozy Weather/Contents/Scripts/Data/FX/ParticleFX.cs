@@ -22,95 +22,52 @@ namespace DistantLands.Cozy.Data
         private CozyParticles runtimeRef;
         public bool autoScale;
 
-        public override void PlayEffect()
-        {
-            if (InitializeEffect(VFXMod) == false)
-                return;
-
-            if (runtimeRef.transform.parent == null)
-            {
-                runtimeRef.transform.parent = VFXMod.particleManager.parent;
-                runtimeRef.transform.localPosition = Vector3.zero;
-            }
-
-            runtimeRef.Play();
-
-        }
-
         public override void PlayEffect(float intensity)
         {
-            if (InitializeEffect(VFXMod) == false)
-                return;
+            if (!runtimeRef)
+                if (InitializeEffect(weatherSphere) == false)
+                    return;
 
+            if (autoScale)
+                runtimeRef.transform.localScale = weatherSphere.transform.GetChild(0).localScale;
 
-            if (intensity <= 0.03f)
+            if (intensity == 0)
             {
-                StopEffect();
+                runtimeRef.Stop();
                 return;
-            }
-
-            if (runtimeRef.transform.parent == null)
-            {
-                runtimeRef.transform.parent = VFXMod.particleManager.parent;
-                runtimeRef.transform.localPosition = Vector3.zero;
             }
 
             runtimeRef.Play(transitionTimeModifier.Evaluate(intensity));
 
         }
 
-        public override void StopEffect()
+        public override bool InitializeEffect(CozyWeather weather)
         {
-            if (!runtimeRef)
-                return;
-
-            runtimeRef.Stop();
-
-        }
-
-        public override bool InitializeEffect(VFXModule VFX)
-        {
-
-            if (VFX == null)
-                VFX = CozyWeather.instance.VFX;
-
-            VFXMod = VFX;
-
-            if (!VFX.particleManager.isEnabled)
-            {
-
+            if (!Application.isPlaying)
                 return false;
 
-            }
+            base.InitializeEffect(weather);
 
             if (runtimeRef == null)
             {
+                runtimeRef = weather.GetFXRuntimeRef<CozyParticles>(name);
+                if (runtimeRef)
+                    return true;
+
                 runtimeRef = Instantiate(particleSystem).GetComponent<CozyParticles>();
-                if (autoScale)
-                    runtimeRef.transform.localScale *= VFX.weatherSphere.transform.localScale.x;
-                runtimeRef.particleManager = VFX.particleManager;
-                runtimeRef.SetupTriggers();
 
                 runtimeRef.gameObject.name = name;
-                runtimeRef.transform.parent = runtimeRef.particleManager.parent;
-                runtimeRef.transform.localPosition = Vector3.zero;
+                runtimeRef.transform.parent = weather.particleFXParent;
+                runtimeRef.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                runtimeRef.SetupTriggers();
+                if (autoScale)
+                    runtimeRef.transform.localScale *= weather.transform.GetChild(0).localScale.x;
             }
 
             return true;
 
         }
-        public override void DeinitializeEffect()
-        {
-            runtimeRef.Stop();
 
-            if (runtimeRef.m_ParticleTypes[0].particleSystem.main.startLifetime.mode == ParticleSystemCurveMode.Constant)
-                Destroy(runtimeRef.gameObject, runtimeRef.m_ParticleTypes[0].particleSystem.main.startLifetime.constant);
-            else
-                Destroy(runtimeRef.gameObject, runtimeRef.m_ParticleTypes[0].particleSystem.main.startLifetime.constantMax);
-
-            runtimeRef = null;
-
-        }
     }
 
 #if UNITY_EDITOR

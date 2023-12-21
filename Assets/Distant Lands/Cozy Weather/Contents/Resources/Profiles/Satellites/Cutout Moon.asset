@@ -23,12 +23,15 @@ MonoBehaviour:
   flare: {fileID: 11400000, guid: e3db97a2c8764cf4d9b4e3a9a81e38a7, type: 2}
   lightColorMultiplier: {r: 1.0392967, g: 1.3978724, b: 1.7079917, a: 1}
   castShadows: 2
-  orbitOffset: 90
-  initialRotation: {x: 0, y: 33.4, z: 0}
+  orbitOffset: -90
+  initialRotation: {x: 0, y: 33.7, z: 0}
   satelliteRotateSpeed: 0.2
-  satelliteRotateAxis: {x: 1, y: 1, z: 0}
+  linkToDay: 1
+  rotationPeriod: 12
+  rotationPeriodOffset: 0
+  satelliteRotateAxis: {x: 0, y: 1, z: 0}
   satelliteDirection: 0
-  satelliteRotation: 212671.36
+  satelliteRotation: 268.1194
   satellitePitch: 0
   changedLastFrame: 0
-  open: 0
+  open: 1

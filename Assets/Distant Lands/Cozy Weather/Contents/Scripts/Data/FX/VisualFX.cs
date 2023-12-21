@@ -6,7 +6,7 @@ using System.Collections;
 using UnityEngine;
 #if UNITY_POST_PROCESSING_STACK_V2
 using UnityEngine.Rendering.PostProcessing;
-#elif COZY_WEATHER_URP 
+#elif COZY_URP 
 using UnityEngine.Rendering;
 #endif
 #if UNITY_EDITOR
@@ -25,104 +25,63 @@ namespace DistantLands.Cozy.Data
 #if UNITY_POST_PROCESSING_STACK_V2
         public PostProcessProfile effectSettings;
         PostProcessVolume _volume;
-#elif COZY_WEATHER_URP 
+#elif COZY_URP 
         public VolumeProfile effectSettings;
         Volume _volume;
 #endif
 
-        public override void PlayEffect()
-        {
-#if UNITY_POST_PROCESSING_STACK_V2 || COZY_WEATHER_URP
-            if (!_volume)
-                if (!InitializeEffect(VFXMod))
-                    return;
-
-            if (_volume.transform.parent == null)
-            {
-                _volume.transform.parent = VFXMod.postFXManager.parent;
-                _volume.transform.localPosition = Vector3.zero;
-            }
-
-            _volume.weight = 1;
-#endif
-        }
-
         public override void PlayEffect(float i)
         {
-#if UNITY_POST_PROCESSING_STACK_V2 || COZY_WEATHER_URP
+#if UNITY_POST_PROCESSING_STACK_V2 || COZY_URP
             if (!_volume)
-                if (!InitializeEffect(VFXMod))
+                if (!InitializeEffect(weatherSphere))
                     return;
 
-            
-            if (i <= 0.03f)
-            {
-                StopEffect();
-                return;
-            }
-
-            if (_volume.transform.parent == null)
-            {
-                _volume.transform.parent = VFXMod.postFXManager.parent;
-                _volume.transform.localPosition = Vector3.zero;
-            }
             _volume.weight = Mathf.Clamp01(transitionTimeModifier.Evaluate(i));
-
 #endif
         }
-
-        public override void StopEffect()
+        public override bool InitializeEffect(CozyWeather weather)
         {
-#if UNITY_POST_PROCESSING_STACK_V2 || COZY_WEATHER_URP
-            _volume.weight = 0; Destroy(_volume.gameObject); 
-#endif
-        }
-
-
-        public override bool InitializeEffect(VFXModule VFX)
-        {
-
-            if (VFX == null)
-                VFX = CozyWeather.instance.VFX;
-
-#if UNITY_POST_PROCESSING_STACK_V2 || COZY_WEATHER_URP
-            VFXMod = VFX;
-
-            if (!VFX.postFXManager.isEnabled)
-            {
-
+            if (!Application.isPlaying)
                 return false;
 
-            }
+            base.InitializeEffect(weather);
+
+#if UNITY_POST_PROCESSING_STACK_V2 || COZY_URP
+            if (_volume)
+                return true;
+
+            if (_volume == null)
+            {
+#if UNITY_POST_PROCESSING_STACK_V2
+                _volume = weather.GetFXRuntimeRef<PostProcessVolume>(name);
+#elif COZY_URP
+                if (weather.GetFXRuntimeRef<Volume>(name))
+                    _volume = weather.GetFXRuntimeRef<Volume>(name);
+#endif
+                if (_volume)
+                    return true;
 
 #if UNITY_POST_PROCESSING_STACK_V2
-            _volume = new GameObject().AddComponent<PostProcessVolume>();
-#elif COZY_WEATHER_URP
-            _volume = new GameObject().AddComponent<Volume>();
+                _volume = new GameObject().AddComponent<PostProcessVolume>();
+#elif COZY_URP
+                _volume = new GameObject().AddComponent<Volume>();
 #endif
-            _volume.gameObject.layer = layer;
-            _volume.profile = effectSettings;
-            _volume.priority = priority;
-            _volume.weight = 0;
-            _volume.isGlobal = true;
-            _volume.gameObject.name = name;
-            _volume.transform.parent = VFX.postFXManager.parent;
+                _volume.gameObject.name = name;
+                _volume.transform.parent = weather.visualFXParent;
+                _volume.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                _volume.profile = effectSettings;
+                _volume.priority = priority;
+                _volume.weight = 0;
+                _volume.isGlobal = true;
+                _volume.gameObject.layer = layer;
 
+                return true;
+            }
 #endif
 
-            return true;
-
-
+            return false;
         }
-
-        public override void DeinitializeEffect()
-        {
-#if UNITY_POST_PROCESSING_STACK_V2 || COZY_WEATHER_URP
-            Destroy(_volume.gameObject); 
-#endif
-        }
-
-
     }
 #if UNITY_EDITOR
     [CustomEditor(typeof(VisualFX))]

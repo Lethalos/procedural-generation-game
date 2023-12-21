@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: Mostly Cloudy
   m_EditorClassIdentifier: 
-  weatherTime: {x: 30, y: 90}
+  minWeatherTime: 0.125
+  maxWeatherTime: 0.33333334
   likelihood: 1.516
   forecastNext:
   - {fileID: 11400000, guid: 48908a08bbd076e4182bc3ca961b9c34, type: 2}
@@ -22,17 +23,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ccbfe05b7967917448c280fffa3a86d1, type: 2}
   forecastModifierMethod: 0
   chances: []
-  cloudSettings:
-    cumulusCoverage: 0.326
-    altocumulusCoverage: 0
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 0
-    cirrusCoverage: 0
-    nimbusCoverage: 0
-    nimbusVariation: 1
-    nimbusHeightEffect: 1
-    borderHeight: 0.54
-    borderVariation: 0.888
-    borderEffect: 1
-  fogDensity: 1
-  FX: []
+  FX:
+  - {fileID: 11400000, guid: 2482d108cd55b19418aa3a8b6af4ff9b, type: 2}

@@ -28,7 +28,7 @@ MonoBehaviour:
   satelliteRotateSpeed: 5
   satelliteRotateAxis: {x: 1, y: 1, z: 1}
   satelliteDirection: 47.8
-  satelliteRotation: 223244.2
+  satelliteRotation: 284146.75
   satellitePitch: 22.8
   changedLastFrame: 0
   open: 0

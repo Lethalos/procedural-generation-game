@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: Distant Storm
   m_EditorClassIdentifier: 
-  weatherTime: {x: 10, y: 30}
+  minWeatherTime: 0.041666668
+  maxWeatherTime: 0.125
   likelihood: 1.086
   forecastNext:
   - {fileID: 11400000, guid: 81a9beb2b882b67448a746cf5c6f0f88, type: 2}
@@ -61,18 +62,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 0
-  cloudSettings:
-    cumulusCoverage: 0.1533
-    altocumulusCoverage: 0
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 1.429
-    cirrusCoverage: 0
-    nimbusCoverage: 0.893
-    nimbusVariation: 1
-    nimbusHeightEffect: 1
-    borderHeight: 0.649
-    borderVariation: 0.9
-    borderEffect: 1
-  fogDensity: 1
   FX:
-  - {fileID: 11400000, guid: f984b0c2b2a1b164ab66e7aaa8244ba4, type: 2}
+  - {fileID: 11400000, guid: 688badbc57618ad4f9c1f4d09ec9a16e, type: 2}
+  - {fileID: 11400000, guid: f69846c0573b8f34c83c68de190c7d8e, type: 2}

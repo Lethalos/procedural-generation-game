@@ -26,67 +26,28 @@ namespace DistantLands.Cozy.Data
         public float snowAmount;
         public float weight;
         CozyWeather weather;
-
-
-        public override void PlayEffect()
-        {
-            if (!VFXMod)
-                if (InitializeEffect(null) == false)
-                    return;
-
-            if (VFXMod.precipitationManager.isEnabled)
-                weight = 1;
-            else
-                weight = 0;
-        }
+        CozyClimateModule climateModule;
 
         public override void PlayEffect(float i)
         {
-            if (!VFXMod)
+            if (!weather)
                 if (InitializeEffect(null) == false)
                     return;
 
-            if (i <= 0.03f)
-            {
-                StopEffect();
-                return;
-            }
-
-            if (VFXMod.precipitationManager.isEnabled)
-                weight = 1 * Mathf.Clamp01(transitionTimeModifier.Evaluate(i));
-            else
-                weight = 0;
+            climateModule.snowSpeed += snowAmount * Mathf.Clamp01(transitionTimeModifier.Evaluate(i));
+            climateModule.rainSpeed += rainAmount * Mathf.Clamp01(transitionTimeModifier.Evaluate(i));
+            
         }
 
-        public override void StopEffect()
-        {
-            weight = 0;
-        }
-
-        public override void DeinitializeEffect()
+        public override bool InitializeEffect(CozyWeather weather)
         {
 
-            StopEffect();
+            weatherSphere = weather ? weather : CozyWeather.instance;
 
-        }
-
-        public override bool InitializeEffect(VFXModule VFX)
-        {
-
-            if (VFX == null)
-                VFX = CozyWeather.instance.VFX;
-
-            VFXMod = VFX;
-
-            if (!VFX.precipitationManager.isEnabled)
-            {
-
+            if (!weatherSphere.climateModule)
                 return false;
 
-            }
-
-            VFX.precipitationManager.precipitationFXes.Add(this);
-            weather = VFX.weatherSphere;
+            climateModule = weatherSphere.climateModule;
 
             return true;
 

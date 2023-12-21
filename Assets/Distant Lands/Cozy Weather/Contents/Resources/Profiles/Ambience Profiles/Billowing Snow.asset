@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Billowing Snow
   m_EditorClassIdentifier: 
   playTime: {x: 5, y: 50}
+  minTime: 0.0625
+  maxTime: 0.14583333
   likelihood: 2
   dontPlayDuring: []
   chances:

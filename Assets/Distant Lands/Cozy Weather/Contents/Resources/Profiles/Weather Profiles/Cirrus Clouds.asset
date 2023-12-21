@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: Cirrus Clouds
   m_EditorClassIdentifier: 
-  weatherTime: {x: 30, y: 90}
+  minWeatherTime: 0.125
+  maxWeatherTime: 0.33333334
   likelihood: 1
   forecastNext:
   - {fileID: 11400000, guid: 48908a08bbd076e4182bc3ca961b9c34, type: 2}
@@ -22,17 +23,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6837940ca502b594281d7bbc93dd7034, type: 2}
   forecastModifierMethod: 0
   chances: []
-  cloudSettings:
-    cumulusCoverage: 0
-    altocumulusCoverage: 0.564
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 0
-    cirrusCoverage: 2
-    nimbusCoverage: 0
-    nimbusVariation: 0.9
-    nimbusHeightEffect: 1
-    borderHeight: 0.5
-    borderVariation: 0.9
-    borderEffect: 1
-  fogDensity: 1
-  FX: []
+  FX:
+  - {fileID: 11400000, guid: 2a40906b181190346984d34957f08459, type: 2}
+  - {fileID: 11400000, guid: 002d6597342259046bb52e516c09671a, type: 2}

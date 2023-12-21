@@ -14,10 +14,10 @@ namespace DistantLands.Cozy
 
 
         private CozyWeather weatherSphere;
-        [HideInInspector]
-        public float weight;
-        [HideInInspector]
-        public CozyParticleManager particleManager;
+        public ParticleFX fxReference;
+
+        [SerializeField]
+        private ParticleSystem[] m_ParticleSystems;
 
         [System.Serializable]
         public class ParticleType
@@ -38,31 +38,32 @@ namespace DistantLands.Cozy
         void Awake()
         {
 
-            weatherSphere = FindObjectOfType<CozyWeather>();
+            weatherSphere = CozyWeather.instance;
 
-            foreach (ParticleSystem i in GetComponentsInChildren<ParticleSystem>())
+            if (m_ParticleSystems.Length == 0)
+                m_ParticleSystems = GetComponentsInChildren<ParticleSystem>();
+
+            foreach (ParticleSystem i in m_ParticleSystems)
             {
-                ParticleType j = new ParticleType();
-                j.particleSystem = i;
-                j.emissionAmount = i.emission.rateOverTime.constant;
+                if (i == null)
+                    continue;
+
+                ParticleType j = new ParticleType
+                {
+                    particleSystem = i,
+                    emissionAmount = i.emission.rateOverTime.constant
+                };
                 m_ParticleTypes.Add(j);
             }
 
-
             foreach (ParticleType i in m_ParticleTypes)
             {
-
                 ParticleSystem.EmissionModule k = i.particleSystem.emission;
                 ParticleSystem.MinMaxCurve j = k.rateOverTime;
 
                 j.constant = 0;
                 k.rateOverTime = j;
-
-
             }
-
-
-
         }
 
         public void SetupTriggers()
@@ -91,7 +92,7 @@ namespace DistantLands.Cozy
                 ParticleSystem.EmissionModule i = particle.particleSystem.emission;
                 ParticleSystem.MinMaxCurve j = i.rateOverTime;
 
-                j.constant = particle.emissionAmount * particleManager.multiplier;
+                // j.constant = particle.emissionAmount * particleManager.multiplier;
                 i.rateOverTime = j;
                 if (particle.particleSystem.isStopped)
                     particle.particleSystem.Play();
@@ -122,7 +123,7 @@ namespace DistantLands.Cozy
                 ParticleSystem.EmissionModule i = particle.particleSystem.emission;
                 ParticleSystem.MinMaxCurve j = i.rateOverTime;
 
-                j.constant = Mathf.Lerp(0, particle.emissionAmount * particleManager.multiplier, weight);
+                j.constant = Mathf.Lerp(0, particle.emissionAmount, weight);
                 i.rateOverTime = j;
                 if (particle.particleSystem.isStopped)
                     particle.particleSystem.Play();

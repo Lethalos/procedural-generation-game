@@ -1,12 +1,14 @@
 // Distant Lands 2022.
 
-
-
 using DistantLands.Cozy.Data;
-using System.Collections;
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using System;
+using System.Linq;
+using UnityEngine.Rendering;
+
+
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
@@ -16,24 +18,24 @@ namespace DistantLands.Cozy
 {
 
     [ExecuteAlways]
-    public class CozyWeather : CozyEcosystem
+    public class CozyWeather : CozySystem
     {
 
         #region Weather    
-        private float cumulus;
-        private float cirrus;
-        private float altocumulus;
-        private float cirrostratus;
-        private float chemtrails;
-        private float nimbus;
-        private float nimbusHeight;
-        private float nimbusVariation;
-        private float border;
-        private float borderEffect;
-        private float borderVariation;
+        public float cumulus;
+        public float cirrus;
+        public float altocumulus;
+        public float cirrostratus;
+        public float chemtrails;
+        public float nimbus;
+        public float nimbusHeightEffect;
+        public float nimbusVariation;
+        public float borderHeight;
+        public float borderEffect;
+        public float borderVariation;
         public float fogDensity;
 
-        public float cloudCoverage { get { return cumulus; } }
+        public float cloudCoverage => cumulus;
 
         #endregion
 
@@ -43,6 +45,7 @@ namespace DistantLands.Cozy
         public bool usePhysicalSunHeight;
         public float sunDirection;
         public float sunPitch;
+        public Vector3 moonDirection;
         [ColorUsage(true, true)] public Color skyZenithColor;
         [ColorUsage(true, true)] public Color skyHorizonColor;
         [ColorUsage(true, true)] public Color cloudColor;
@@ -60,12 +63,11 @@ namespace DistantLands.Cozy
         [ColorUsage(true, true)] public Color fogColor4;
         [ColorUsage(true, true)] public Color fogColor5;
         [ColorUsage(true, true)] public Color fogFlareColor;
+        [ColorUsage(true, true)] public Color fogMoonFlareColor;
         public float gradientExponent = 0.364f;
-        public float atmosphereVariationMin;
-        public float atmosphereVariationMax;
-        public float atmosphereBias = 1;
         public float sunSize = 0.7f;
         [ColorUsage(true, true)] public Color sunColor;
+        [ColorUsage(true, true)] public Color moonColor;
         public float sunFalloff = 43.7f;
         [ColorUsage(true, true)] public Color sunFlareColor;
         public float moonFalloff = 24.4f;
@@ -86,6 +88,11 @@ namespace DistantLands.Cozy
         public float fogLightFlareIntensity = 1;
         public float fogLightFlareFalloff = 21;
         public float fogLightFlareSquish = 1;
+        public float fogSmoothness;
+        public float fogVariationAmount;
+        public Vector3 fogVariationDirection;
+        public float fogVariationDistance;
+        public float fogVariationScale;
         [ColorUsage(true, true)] public Color cloudMoonColor;
         public float cloudSunHighlightFalloff = 14.1f;
         public float cloudMoonHighlightFalloff = 22.9f;
@@ -105,11 +112,34 @@ namespace DistantLands.Cozy
         public float cloudThickness = 2f;
         public float textureAmount = 1f;
         public Texture cloudTexture;
+        public Texture chemtrailsTexture;
+        public Texture cirrusCloudTexture;
+        public Texture altocumulusCloudTexture;
+        public Texture cirrostratusCloudTexture;
+        public Texture starMap;
+        public Texture galaxyMap;
+        public Texture galaxyStarMap;
+        public Texture galaxyVariationMap;
+        public Texture lightScatteringMap;
         public Vector3 texturePanDirection;
+        public Texture partlyCloudyLuxuryClouds;
+        public Texture mostlyCloudyLuxuryClouds;
+        public Texture overcastLuxuryClouds;
+        public Texture lowBorderLuxuryClouds;
+        public Texture highBorderLuxuryClouds;
+        public Texture lowNimbusLuxuryClouds;
+        public Texture midNimbusLuxuryClouds;
+        public Texture highNimbusLuxuryClouds;
+        public Texture luxuryVariation;
 
         public float rainbowIntensity;
         public bool useRainbow;
         public bool separateSunLightAndTransform;
+        public float sunAngle = 0.5f;
+#if COZY_URP
+        public AtmosphereProfile.URPFlare sunFlare;
+        public AtmosphereProfile.URPFlare moonFlare;
+#endif
 
         #endregion
 
@@ -125,31 +155,41 @@ namespace DistantLands.Cozy
         #region Runtime Variables   
 
         private float adjustedScale;
-        public float dayPercentage;
-        public float yearPercentage;
-        private AtmosphereProfile checkAtmosProfChange;
 
         public enum LockToCameraStyle { useMainCamera, useCustomCamera, DontLockToCamera }
 
         [Tooltip("Should the weather sphere always follow the camera and automatically rescale to the scene size?")]
         public LockToCameraStyle lockToCamera;
         public bool freezeUpdateInEditMode = false;
+        public bool followEditorCamera = true;
         public bool disableSunAtNight = true;
+        public bool handleSceneLighting = true;
 
         #endregion
 
         #region References
 
-        public AtmosphereProfile atmosphereProfile;
-        public PerennialProfile perennialProfile;
-        private FilterFX defaultFilter;
 
+        [SerializeField]
+        [Tooltip("Set the color of these particle systems to the star color of the weather system.")]
+        private List<ParticleSystem> m_Stars = new List<ParticleSystem>();
+        [Tooltip("Set the color of these particle systems to the cloud color of the weather system.")]
+        [SerializeField]
+        private List<ParticleSystem> m_CloudParticles = new List<ParticleSystem>();
+
+
+        public PerennialProfile perennialProfile;
         public Light sunLight;
         public Transform sunTransform;
+        public bool centerAroundCustomObject;
+        public Transform customPivot;
         public MeshRenderer cloudMesh;
         public MeshRenderer skyMesh;
         public MeshRenderer fogMesh;
         public Camera cozyCamera;
+#if COZY_URP
+        public LensFlareComponentSRP sunLensFlare;
+#endif
 
 
         #endregion
@@ -158,34 +198,12 @@ namespace DistantLands.Cozy
 
         public List<Type> activeModules;
 
-        [HideInInspector]
-        public CozyMaterialManager cozyMaterials;
-        [HideInInspector]
-        public VFXModule VFX;
-
-        #endregion
-
-        #region Editor
-
-        public int window;
-        public Texture icon1;
-        public Texture icon2;
-        public Texture icon3;
-        public Texture icon4;
-        public bool atmosWindow;
-        public bool atmosSettingsWindow;
-        public bool timeCurrentWindow;
-        public bool tickMovementWindow;
-        public bool timeBlocksWindow;
-        public bool curveWindow;
-        public bool tickLengthWindow;
-        public bool currentWeatherWindow;
-        public bool forecastWindow;
-        public bool climateWindow;
-        public bool win1;
-        public bool win2;
-        public bool win3;
-        public bool win4;
+        public CozyInteractionsModule interactionsModule;
+        public CozyClimateModule climateModule;
+        public CozyWeatherModule weatherModule;
+        public CozyTimeModule timeModule;
+        public CozyAtmosphereModule atmosphereModule;
+        public CozyWindModule windModule;
 
         #endregion
 
@@ -196,122 +214,54 @@ namespace DistantLands.Cozy
         {
 
             public float timeToCheckFor;
-            public int currentTick;
+            public int currentMinute;
             public int currentHour;
-            public bool useEvents;
 
             public delegate void OnEvening();
             public static event OnEvening onEvening;
-            public void RaiseOnEvening()
-            {
-                if (onEvening != null)
-                    onEvening();
-            }
+            public void RaiseOnEvening() => onEvening?.Invoke();
             public delegate void OnMorning();
             public static event OnMorning onMorning;
-            public void RaiseOnMorning()
-            {
-                if (onMorning != null)
-                    onMorning();
-            }
+            public void RaiseOnMorning() => onMorning?.Invoke();
             public delegate void OnNewHour();
             public static event OnNewHour onNewHour;
-            public void RaiseOnNewHour()
-            {
-                if (onNewHour != null)
-                    onNewHour();
-            }
-            public delegate void OnTickPass();
-            public static event OnTickPass onNewTick;
-            public void RaiseOnTickPass()
-            {
-                if (onNewTick != null)
-                    onNewTick();
-            }
+            public void RaiseOnNewHour() => onNewHour?.Invoke();
+            public delegate void OnMinutePass();
+            public static event OnMinutePass onNewMinute;
+            public void RaiseOnMinutePass() => onNewMinute?.Invoke();
             public delegate void OnNight();
             public static event OnNight onNight;
-            public void RaiseOnNight()
-            {
-                if (onNight != null)
-                    onNight();
-            }
+            public void RaiseOnNight() => onNight?.Invoke();
             public delegate void OnDay();
             public static event OnDay onDay;
-            public void RaiseOnDay()
-            {
-                if (onDay != null)
-                    onDay();
-
-            }
+            public void RaiseOnDay() => onDay?.Invoke();
             public delegate void OnDawn();
             public static event OnDawn onDawn;
-            public void RaiseOnDawn()
-            {
-                if (onDawn != null)
-                    onDawn();
-
-            }
+            public void RaiseOnDawn() => onDawn?.Invoke();
             public delegate void OnAfternoon();
             public static event OnAfternoon onAfternoon;
-            public void RaiseOnAfternoon()
-            {
-                if (onAfternoon != null)
-                    onAfternoon();
-
-            }
+            public void RaiseOnAfternoon() => onAfternoon?.Invoke();
             public delegate void OnTwilight();
             public static event OnTwilight onTwilight;
-            public void RaiseOnTwilight()
-            {
-                if (onTwilight != null)
-                    onTwilight();
-
-            }
-
+            public void RaiseOnTwilight() => onTwilight?.Invoke();
             public delegate void OnWeatherChange();
             public static event OnWeatherChange onWeatherChange;
-            public void RaiseOnWeatherChange()
-            {
-                if (onWeatherChange != null)
-                    onWeatherChange();
-            }
-
+            public void RaiseOnWeatherChange() => onWeatherChange?.Invoke();
             public delegate void OnDayChange();
             public static event OnDayChange onNewDay;
-            public void RaiseOnDayChange()
-            {
-                if (onNewDay != null)
-                    onNewDay();
-            }
+            public void RaiseOnDayChange() => onNewDay?.Invoke();
             public delegate void OnYearChange();
             public static event OnYearChange onNewYear;
-            public void RaiseOnYearChange()
-            {
-                if (onNewYear != null)
-                    onNewYear();
-            }
+            public void RaiseOnYearChange() => onNewYear?.Invoke();
             public delegate void OnRaining();
             public static event OnRaining onRaining;
-            public void RaiseOnRaining()
-            {
-                if (onRaining != null)
-                    onRaining();
-            }
+            public void RaiseOnRaining() => onRaining?.Invoke();
             public delegate void OnSnowing();
             public static event OnSnowing onSnowing;
-            public void RaiseOnSnowing()
-            {
-                if (onSnowing != null)
-                    onSnowing();
-            }
+            public void RaiseOnSnowing() => onSnowing?.Invoke();
             public delegate void OnSunny();
             public static event OnSunny onSunny;
-            public void RaiseOnSunny()
-            {
-                if (onSunny != null)
-                    onSunny();
-            }
-
+            public void RaiseOnSunny() => onSunny?.Invoke();
 
         }
 
@@ -329,148 +279,62 @@ namespace DistantLands.Cozy
 
         #endregion
 
-        #region Time 
-
-        public float currentTicks
-        {
-            get { return timeControl == TimeControl.native ? calendar.currentTicks : perennialProfile.currentTicks; }
-            set
-            {
-                if (timeControl == TimeControl.native)
-                {
-                    calendar.currentTicks = value;
-                }
-                else
-                {
-                    perennialProfile.currentTicks = value;
-                }
-
-                MeridiemTime.DayPercentToMeridiemTime(GetCurrentDayPercentage(), ref calendar.meridiemTime);
-
-            }
-
-        }
-
-        public MeridiemTime currentTime
-        {
-            get { return calendar.meridiemTime; }
-            set
-            {
-
-                if (timeControl == TimeControl.native)
-                {
-                    calendar.currentTicks = MeridiemTime.MeridiemTimeToDayPercent(value) * perennialProfile.ticksPerDay;
-                }
-                else
-                {
-                    perennialProfile.currentTicks = MeridiemTime.MeridiemTimeToDayPercent(value) * perennialProfile.ticksPerDay;
-                }
-
-            }
-
-        }
-
-        public int currentDay
-        {
-            get { return timeControl == TimeControl.native ? calendar.currentDay : perennialProfile.currentDay; }
-            set
-            {
-                if (timeControl == TimeControl.native)
-                {
-                    calendar.currentDay = value;
-                }
-                else
-                {
-                    perennialProfile.currentDay = value;
-                }
-            }
-
-        }
-
-        public int currentYear
-        {
-            get { return timeControl == TimeControl.native ? calendar.currentYear : perennialProfile.currentYear; }
-            set
-            {
-                if (timeControl == TimeControl.native)
-                {
-                    calendar.currentYear = value;
-                }
-                else
-                {
-                    perennialProfile.currentYear = value;
-                }
-            }
-
-        }
-
-        [System.Serializable]
-        public class CozyCalendar
-        {
-
-
-            public float currentTicks;
-            [FormatTime]
-            public MeridiemTime meridiemTime;
-            public int currentDay;
-            public int currentYear;
-
-
-        }
-        public CozyCalendar calendar;
-
-
-
-        #endregion
-
         #region Ecosystem  
 
 
-        public List<CozyEcosystem> ecosystems;
+        public List<CozySystem> systems;
 
-        [WeightedWeather]
-        public List<WeightedWeather> currentWeatherProfiles;
-
-        private WeatherProfile weatherCheck;
-        public WeatherProfile currentLocalWeather { get; private set; }
-
-        [SerializeField]
-        private List<WeatherProfile> setupProfiles = new List<WeatherProfile>();
-        public List<WeatherProfile> queuedWeather = new List<WeatherProfile>();
-        public List<FilterFX> possibleFilters = new List<FilterFX>();
 
         #endregion
 
-        public enum AtmosphereSelection { native, profile }
-        [Tooltip("How should this weather system manage atmosphere settings? Native sets all settings locally to this system, Profile sets global settings on the atmosphere profile.")]
-        public AtmosphereSelection atmosphereControl;
+        #region FX
 
-        public enum TimeControl { native, profile }
-        [Tooltip("How should this weather system manage time settings? Native sets all settings locally to this system, Profile sets global settings on the perennial profile.")]
-        public TimeControl timeControl;
+        public Transform audioFXParent;
+        public Transform particleFXParent;
+        public Transform thunderFXParent;
+        public Transform visualFXParent;
+
+        #endregion
+
+        #region Execution
+
+        public delegate void FrameResetDelegate();
+        public static event FrameResetDelegate OnFrameReset;
+        public void RaiseOnFrameReset()
+        {
+            OnFrameReset?.Invoke();
+        }
+        public delegate void UpdateWeatherWeightsDelegate();
+        public static event UpdateWeatherWeightsDelegate UpdateWeatherWeights;
+        public void RaiseUpdateWeatherWeights() => UpdateWeatherWeights?.Invoke();
+        public delegate void UpdateFXWeightsDelegate();
+        public static event UpdateFXWeightsDelegate UpdateFXWeights;
+        public void RaiseUpdateFXWeights() => UpdateFXWeights?.Invoke();
+        public delegate void PropogateVariablesDelegate();
+        public static event PropogateVariablesDelegate PropogateVariables;
+        public void RaisePropogateVariables() => PropogateVariables?.Invoke();
+        public delegate void CozyUpdateLoopDelegate();
+        public static event CozyUpdateLoopDelegate CozyUpdateLoop;
+        public void RaiseCozyUpdateLoop() => CozyUpdateLoop?.Invoke();
+
+        #endregion
+
+        public enum ControlMethod { native, profile }
 
         public enum SkyStyle { desktop, mobile, off }
         public SkyStyle skyStyle;
 
-        public enum CloudStyle { cozyDesktop, cozyMobile, soft, paintedSkies, ghibliDesktop, ghibliMobile, singleTexture, off }
+        public enum CloudStyle { cozyDesktop, cozyMobile, soft, paintedSkies, luxury, ghibliDesktop, ghibliMobile, singleTexture, off }
         public CloudStyle cloudStyle;
 
         public enum FogStyle { unity, stylized, heightFog, steppedFog, off }
         public FogStyle fogStyle = FogStyle.stylized;
-
-        public bool transitioningAtmosphere;
-        public bool transitioningWeather;
-        public bool transitioningTime;
-
-        public CozyModule overrideAtmosphere;
         public CozyModule overrideWeather;
-        public CozyTimeOverride overrideTime;
-        public CozyDateOverride overrideDate;
 
         public GameObject moduleHolder;
         public List<CozyModule> modules = new List<CozyModule>();
 
-        void SetupReferences()
+        private void SetupReferences()
         {
             if (!separateSunLightAndTransform)
             {
@@ -480,41 +344,57 @@ namespace DistantLands.Cozy
             skyMesh = GetChild("Skydome").GetComponent<MeshRenderer>();
             cloudMesh = GetChild("Foreground Clouds").GetComponent<MeshRenderer>();
             fogMesh = GetChild("Fog").GetComponent<MeshRenderer>();
+            audioFXParent = GetChild("Audio FX");
+            particleFXParent = GetChild("Particle FX");
+            visualFXParent = GetChild("Visual FX");
+            thunderFXParent = GetChild("Thunder FX");
+
+#if COZY_URP
+            if (sunLight.GetComponent<LensFlareComponentSRP>())
+                sunLensFlare = sunLight.GetComponent<LensFlareComponentSRP>();
+#endif
+
+            if (cozyTriggers.Count == 0)
+                ResetFXTriggers();
+
+            RenderSettings.ambientMode = AmbientMode.Trilight;
 
         }
 
 #if UNITY_EDITOR
-        void OnEnable()
+        private new void OnEnable()
         {
+            base.OnEnable();
             SceneView.beforeSceneGui += UpdateSkydomePositionAndScale;
         }
 
-        void OnDisable()
+        private void OnDisable()
         {
             SceneView.beforeSceneGui -= UpdateSkydomePositionAndScale;
         }
 #endif
 
-        new void Awake()
+        private void Awake()
         {
 
             SetupReferences();
             ResetModules();
-            SetShaderVariables();
-            SetupTime();
-
-            defaultFilter = (FilterFX)Resources.Load("Default Filter");
+            ResetVariables();
+            ResetQuality();
+            UpdateShaderVariables();
+            CozyShaderIDs.GrabShaderIDs();
 
 
             if (Application.isPlaying)
             {
-
-                ecosystems = new List<CozyEcosystem>() { this };
-                base.Awake();
-
                 ResetFXTriggers();
-
             }
+        }
+
+        public void SetupSystems()
+        {
+            systems = new List<CozySystem>() { this };
+            systems.AddRange(FindObjectsOfType<CozySystem>().Where(x => x != this));
         }
 
         public void ResetFXTriggers()
@@ -527,19 +407,6 @@ namespace DistantLands.Cozy
                     cozyTriggers.Add(i);
                 }
             }
-        }
-
-        // Start is called before the first frame update
-        void Start()
-        {
-
-            ResetVariables();
-            CalculateFilterColors();
-            ResetQuality();
-
-            currentLocalWeather = GetCurrentWeatherProfile();
-            weatherCheck = currentLocalWeather;
-
         }
 
         /// <summary>
@@ -568,6 +435,9 @@ namespace DistantLands.Cozy
                 case CloudStyle.paintedSkies:
                     cloudMesh.sharedMaterial.shader = ((Material)Resources.Load("Materials/Painted Clouds Reference")).shader;
                     break;
+                case CloudStyle.luxury:
+                    cloudMesh.sharedMaterial.shader = ((Material)Resources.Load("Materials/Luxury Clouds Reference")).shader;
+                    break;
                 case CloudStyle.soft:
                     cloudMesh.sharedMaterial.shader = ((Material)Resources.Load("Materials/Soft Clouds Reference")).shader;
                     break;
@@ -577,8 +447,9 @@ namespace DistantLands.Cozy
                 case CloudStyle.off:
                     cloudMesh.sharedMaterial.shader = ((Material)Resources.Load("Materials/Disabled")).shader;
                     break;
+                default:
+                    break;
             }
-
 
             switch (skyStyle)
             {
@@ -591,7 +462,8 @@ namespace DistantLands.Cozy
                 case SkyStyle.off:
                     skyMesh.sharedMaterial.shader = ((Material)Resources.Load("Materials/Disabled")).shader;
                     break;
-
+                default:
+                    break;
             }
 
             switch (fogStyle)
@@ -616,112 +488,63 @@ namespace DistantLands.Cozy
                     fogMesh.sharedMaterial.shader = ((Material)Resources.Load("Materials/Disabled")).shader;
                     RenderSettings.fog = false;
                     break;
-
+                default:
+                    break;
             }
-
-            CheckSystemProperties();
-
-
         }
 
         // Update is called once per frame
-        public new void Update()
+        void Update()
         {
 
-            base.Update();
 
-            if (!overrideTime)
-                ManageTime();
 
-            if (!Application.isPlaying)
-            {
-                ResetModules();
-                ResetVariables();
+            RaiseOnFrameReset();
+            RaiseUpdateWeatherWeights();
+            RaiseUpdateFXWeights();
+            RaisePropogateVariables();
+            RaiseCozyUpdateLoop();
 
-                if (checkAtmosProfChange != atmosphereProfile)
-                {
-                    ResetQuality();
-                    checkAtmosProfChange = atmosphereProfile;
-                }
+        }
 
-                currentWeatherProfiles = new List<WeightedWeather>() { new WeightedWeather() { profile = currentWeather, weight = 1 } };
-
-                if (!overrideDate)
-                    if (perennialProfile.realisticYear)
-                    {
-                        perennialProfile.daysPerYear = perennialProfile.RealisticDaysPerYear();
-                    }
-            }
-
-            if (currentWeather == null || atmosphereProfile == null || perennialProfile == null)
-            {
-                Debug.LogWarning("Cozy Weather requires an active weather profile, an active perennial profile and an active atmosphere profile to function properly.\nPlease ensure that the active CozyWeather script contains all necessary profile references.");
-                return;
-            }
-
-            if (!overrideAtmosphere)
-            {
-                if (atmosphereControl == AtmosphereSelection.profile)
-                    if (!transitioningAtmosphere)
-                        SetAtmosphereVariables();
-            }
-
-            SetShaderVariables();
-            SetGlobalVariables();
-            ManageWeatherWeights();
-
+        void LateUpdate()
+        {
             if (Application.isPlaying)
             {
                 UpdateSkydomePositionAndScale();
-                GlobalEcosystem();
-                UpdateWeatherByWeight();
-
-#if UNITY_EDITOR
-                if (!VFX)
-                    if (currentWeatherProfiles[0].profile.FX.Length > 0)
-                        Debug.LogWarning("VFX requires an active VFX module on the COZY system. Be sure to add it in the modules portion of the settings tab!");
-#endif
-
-                currentLocalWeather = GetCurrentWeatherProfile();
-                if (weatherCheck != currentLocalWeather)
-                {
-                    if (events.useEvents)
-                    {
-                        events.RaiseOnWeatherChange();
-                    }
-
-                    weatherCheck = currentLocalWeather;
-                }
+                return;
             }
-
+            else if (Application.isFocused)
+                UpdateSkydomePositionAndScale();
         }
 
         public void UpdateSkydomePositionAndScale()
         {
-            if (lockToCamera != LockToCameraStyle.DontLockToCamera)
+            if (lockToCamera != LockToCameraStyle.DontLockToCamera || centerAroundCustomObject)
             {
 
-                if (lockToCamera == LockToCameraStyle.useMainCamera)
+                if (lockToCamera == LockToCameraStyle.useMainCamera && cozyCamera == null)
                     cozyCamera = Camera.main;
 
                 if (cozyCamera != null)
                 {
-                    transform.position = cozyCamera.transform.position;
                     adjustedScale = cozyCamera.farClipPlane / 1000;
-
-                    transform.localScale = Vector3.one * adjustedScale;
-
-                    Material fogMat = fogMesh.sharedMaterial;
-                    if (fogStyle == FogStyle.stylized || fogStyle == FogStyle.heightFog || fogStyle == FogStyle.steppedFog)
-                        fogMat.SetFloat("_FogSmoothness", 100 * adjustedScale);
-
+                    transform.GetChild(0).localScale = Vector3.one * adjustedScale;
                 }
+
+                if (centerAroundCustomObject && customPivot)
+                    transform.position = customPivot.position;
+                else if (cozyCamera)
+                    transform.position = cozyCamera.transform.position;
             }
         }
 
 #if UNITY_EDITOR
         public void UpdateSkydomePositionAndScale(SceneView sceneView)
         {
+            if (freezeUpdateInEditMode || !followEditorCamera || Application.isFocused)
+                return;
+
             if (lockToCamera != LockToCameraStyle.DontLockToCamera)
             {
                 if (lockToCamera == LockToCameraStyle.useMainCamera)
@@ -740,301 +563,145 @@ namespace DistantLands.Cozy
                         adjustedScale = sceneView.camera.farClipPlane / 1000;
                     }
 
-                    transform.localScale = Vector3.one * adjustedScale;
-
-                    Material fogMat = fogMesh.sharedMaterial;
-                    if (fogStyle == FogStyle.stylized || fogStyle == FogStyle.heightFog || fogStyle == FogStyle.steppedFog)
-                        fogMat.SetFloat("_FogSmoothness", 100 * adjustedScale);
+                    transform.GetChild(0).localScale = Vector3.one * adjustedScale;
 
                 }
             }
         }
 #endif
 
-        #region Atmosphere
         /// <summary>
-        /// Immediately sets all of the atmosphere variables.
+        /// Sets the actual global shader variables of the sky dome, fog dome, and cloud dome.
         /// </summary> 
-        void SetAtmosphereVariables()
+        public void UpdateShaderVariables()
         {
-
-            float i = usePhysicalSunHeight ? perennialProfile.sunMovementCurve.Evaluate(dayPercentage) / 360 : dayPercentage;
-
-            gradientExponent = atmosphereProfile.gradientExponent.GetFloatValue(i);
-            acScale = atmosphereProfile.acScale.GetFloatValue(i);
-            ambientLightHorizonColor = atmosphereProfile.ambientLightHorizonColor.GetColorValue(i);
-            ambientLightZenithColor = atmosphereProfile.ambientLightZenithColor.GetColorValue(i);
-            ambientLightMultiplier = atmosphereProfile.ambientLightMultiplier.GetFloatValue(i);
-            atmosphereBias = atmosphereProfile.atmosphereBias.GetFloatValue(i);
-            atmosphereVariationMax = atmosphereProfile.atmosphereVariationMax.GetFloatValue(i);
-            atmosphereVariationMin = atmosphereProfile.atmosphereVariationMin.GetFloatValue(i);
-            chemtrailsMoveSpeed = atmosphereProfile.chemtrailsMoveSpeed.GetFloatValue(i);
-            cirroMoveSpeed = atmosphereProfile.cirroMoveSpeed.GetFloatValue(i);
-            cirrusMoveSpeed = atmosphereProfile.cirrusMoveSpeed.GetFloatValue(i);
-            clippingThreshold = atmosphereProfile.clippingThreshold.GetFloatValue(i);
-            cloudCohesion = atmosphereProfile.cloudCohesion.GetFloatValue(i);
-            cloudColor = atmosphereProfile.cloudColor.GetColorValue(i);
-            cloudDetailAmount = atmosphereProfile.cloudDetailAmount.GetFloatValue(i);
-            cloudDetailScale = atmosphereProfile.cloudDetailScale.GetFloatValue(i);
-            cloudHighlightColor = atmosphereProfile.cloudHighlightColor.GetColorValue(i);
-            cloudMainScale = atmosphereProfile.cloudMainScale.GetFloatValue(i);
-            cloudMoonColor = atmosphereProfile.cloudMoonColor.GetColorValue(i);
-            cloudMoonHighlightFalloff = atmosphereProfile.cloudMoonHighlightFalloff.GetFloatValue(i);
-            cloudSunHighlightFalloff = atmosphereProfile.cloudSunHighlightFalloff.GetFloatValue(i);
-            cloudTextureColor = atmosphereProfile.cloudTextureColor.GetColorValue(i);
-            cloudThickness = atmosphereProfile.cloudThickness.GetFloatValue(i);
-            cloudWindSpeed = atmosphereProfile.cloudWindSpeed.GetFloatValue(i);
-            fogColor1 = atmosphereProfile.fogColor1.GetColorValue(i);
-            fogColor2 = atmosphereProfile.fogColor2.GetColorValue(i);
-            fogColor3 = atmosphereProfile.fogColor3.GetColorValue(i);
-            fogColor4 = atmosphereProfile.fogColor4.GetColorValue(i);
-            fogColor5 = atmosphereProfile.fogColor5.GetColorValue(i);
-            fogStart1 = atmosphereProfile.fogStart1;
-            fogStart2 = atmosphereProfile.fogStart2;
-            fogStart3 = atmosphereProfile.fogStart3;
-            fogStart4 = atmosphereProfile.fogStart4;
-            fogDensityMultiplier = atmosphereProfile.fogDensityMultiplier.GetFloatValue(i);
-            fogFlareColor = atmosphereProfile.fogFlareColor.GetColorValue(i);
-            fogHeight = atmosphereProfile.fogHeight.GetFloatValue(i);
-            fogLightFlareFalloff = atmosphereProfile.fogLightFlareFalloff.GetFloatValue(i);
-            fogLightFlareIntensity = atmosphereProfile.fogLightFlareIntensity.GetFloatValue(i);
-            fogLightFlareSquish = atmosphereProfile.fogLightFlareSquish.GetFloatValue(i);
-            galaxy1Color = atmosphereProfile.galaxy1Color.GetColorValue(i);
-            galaxy2Color = atmosphereProfile.galaxy2Color.GetColorValue(i);
-            galaxy3Color = atmosphereProfile.galaxy3Color.GetColorValue(i);
-            galaxyIntensity = atmosphereProfile.galaxyIntensity.GetFloatValue(i);
-            highAltitudeCloudColor = atmosphereProfile.highAltitudeCloudColor.GetColorValue(i);
-            lightScatteringColor = atmosphereProfile.lightScatteringColor.GetColorValue(i);
-            moonlightColor = atmosphereProfile.moonlightColor.GetColorValue(i);
-            moonFalloff = atmosphereProfile.moonFalloff.GetFloatValue(i);
-            moonFlareColor = atmosphereProfile.moonFlareColor.GetColorValue(i);
-            useRainbow = atmosphereProfile.useRainbow;
-            rainbowPosition = atmosphereProfile.rainbowPosition.GetFloatValue(i);
-            rainbowWidth = atmosphereProfile.rainbowWidth.GetFloatValue(i);
-            shadowDistance = atmosphereProfile.shadowDistance.GetFloatValue(i);
-            skyHorizonColor = atmosphereProfile.skyHorizonColor.GetColorValue(i);
-            skyZenithColor = atmosphereProfile.skyZenithColor.GetColorValue(i);
-            spherize = atmosphereProfile.spherize.GetFloatValue(i);
-            starColor = atmosphereProfile.starColor.GetColorValue(i);
-            sunColor = atmosphereProfile.sunColor.GetColorValue(i);
-            sunDirection = atmosphereProfile.sunDirection.GetFloatValue(i);
-            sunFalloff = atmosphereProfile.sunFalloff.GetFloatValue(i);
-            sunFlareColor = atmosphereProfile.sunFlareColor.GetColorValue(i);
-            sunlightColor = atmosphereProfile.sunlightColor.GetColorValue(i);
-            sunPitch = atmosphereProfile.sunPitch.GetFloatValue(i);
-            sunSize = atmosphereProfile.sunSize.GetFloatValue(i);
-            textureAmount = atmosphereProfile.textureAmount.GetFloatValue(i);
-            cloudTexture = atmosphereProfile.cloudTexture;
-            texturePanDirection = atmosphereProfile.texturePanDirection;
-
-
-
-        }
-
-        /// <summary>
-        /// Sets the global shader variables.
-        /// </summary> 
-        public void SetGlobalVariables()
-        {
-
+            if (CozyShaderIDs.CZY_FogColor1ID == 0)
+            {
+                CozyShaderIDs.GrabShaderIDs();
+            }
             if (freezeUpdateInEditMode && !Application.isPlaying)
                 return;
 
-            Material i = fogMesh.sharedMaterial;
-
-            if (fogStyle == FogStyle.stylized || fogStyle == FogStyle.heightFog || fogStyle == FogStyle.steppedFog)
+            if (fogStyle is FogStyle.stylized or FogStyle.heightFog or FogStyle.steppedFog)
             {
-                Shader.SetGlobalColor("CZY_FogColor1", i.GetColor("_FogColor1"));
-                Shader.SetGlobalColor("CZY_FogColor2", i.GetColor("_FogColor2"));
-                Shader.SetGlobalColor("CZY_FogColor3", i.GetColor("_FogColor3"));
-                Shader.SetGlobalColor("CZY_FogColor4", i.GetColor("_FogColor4"));
-                Shader.SetGlobalColor("CZY_FogColor5", i.GetColor("_FogColor5"));
+                Shader.SetGlobalColor(CozyShaderIDs.CZY_FogColor1ID, fogColor1);
+                Shader.SetGlobalColor(CozyShaderIDs.CZY_FogColor2ID, fogColor2);
+                Shader.SetGlobalColor(CozyShaderIDs.CZY_FogColor3ID, fogColor3);
+                Shader.SetGlobalColor(CozyShaderIDs.CZY_FogColor4ID, fogColor4);
+                Shader.SetGlobalColor(CozyShaderIDs.CZY_FogColor5ID, fogColor5);
 
-                Shader.SetGlobalFloat("CZY_FogColorStart1", atmosphereProfile.fogStart1);
-                Shader.SetGlobalFloat("CZY_FogColorStart2", atmosphereProfile.fogStart2);
-                Shader.SetGlobalFloat("CZY_FogColorStart3", atmosphereProfile.fogStart3);
-                Shader.SetGlobalFloat("CZY_FogColorStart4", atmosphereProfile.fogStart4);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_FogColorStart1ID, fogStart1);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_FogColorStart2ID, fogStart2);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_FogColorStart3ID, fogStart3);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_FogColorStart4ID, fogStart4);
 
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_FogIntensityID, fogDensity);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_FogOffsetID, fogHeight);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_LightFlareSquishID, fogLightFlareSquish);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_FogSmoothnessID, fogSmoothness);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_FogDepthMultiplierID, fogDensityMultiplier * fogDensity);
+                Shader.SetGlobalColor(CozyShaderIDs.CZY_LightColorID, fogFlareColor);
+                Shader.SetGlobalColor(CozyShaderIDs.CZY_FogMoonFlareColorID, fogMoonFlareColor);
 
-                Shader.SetGlobalFloat("CZY_FogIntensity", i.GetFloat("_FogIntensity"));
-                Shader.SetGlobalFloat("CZY_FogOffset", i.GetFloat("_FogOffset"));
-                Shader.SetGlobalFloat("CZY_FogSmoothness", i.GetFloat("_FogSmoothness"));
-                Shader.SetGlobalFloat("CZY_FogDepthMultiplier", i.GetFloat("_FogDepthMultiplier"));
-                Shader.SetGlobalColor("CZY_LightColor", i.GetColor("_LightColor"));
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_VariationAmountID, fogVariationAmount);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_VariationScaleID, fogVariationScale);
+                Shader.SetGlobalVector(CozyShaderIDs.CZY_VariationWindDirectionID, fogVariationDirection);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_VariationDistanceID, fogVariationDistance);
 
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_LightFalloffID, fogLightFlareFalloff);
+                Shader.SetGlobalFloat(CozyShaderIDs.CZY_LightIntensityID, fogLightFlareIntensity);
             }
 
-            Shader.SetGlobalVector("CZY_SunDirection", -sunTransform.forward);
-            Shader.SetGlobalFloat("CZY_LightFalloff", fogLightFlareFalloff);
-            Shader.SetGlobalFloat("CZY_LightIntensity", fogLightFlareIntensity);
+
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_FilterColorID, filterColor);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_SunFilterColorID, sunFilter);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_CloudFilterColorID, cloudFilter);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_FilterSaturationID, filterSaturation);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_FilterValueID, filterValue);
+
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_CumulusCoverageMultiplierID, cumulus);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_NimbusMultiplierID, nimbus);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_NimbusHeightID, nimbusHeightEffect);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_NimbusVariationID, nimbusVariation);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_BorderHeightID, borderHeight);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_BorderEffectID, borderEffect);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_BorderVariationID, borderVariation);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_AltocumulusMultiplierID, altocumulus);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_CirrostratusMultiplierID, cirrostratus);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_ChemtrailsMultiplierID, chemtrails);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_CirrusMultiplierID, cirrus);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_CloudTextureID, cloudTexture);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_ChemtrailsTextureID, chemtrailsTexture);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_CirrusTextureID, cirrusCloudTexture);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_CirrostratusTextureID, cirrostratusCloudTexture);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_AltocumulusTextureID, altocumulusCloudTexture);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_StarMapID, starMap);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_GalaxyStarMapID, galaxyStarMap);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_GalaxyVariationMapID, galaxyVariationMap);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_LightScatteringMapID, lightScatteringMap);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_GalaxyMapID, galaxyMap);
+            Shader.SetGlobalVector(CozyShaderIDs.CZY_TexturePanDirectionID, texturePanDirection);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_ZenithColorID, skyZenithColor);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_HorizonColorID, skyHorizonColor);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_StarColorID, starColor);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_GalaxyMultiplierID, galaxyIntensity);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_RainbowIntensityID, rainbowIntensity);
+
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_PartlyCloudyLuxuryCloudsTextureID, partlyCloudyLuxuryClouds);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_MostlyCloudyLuxuryCloudsTextureID, mostlyCloudyLuxuryClouds);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_OvercastLuxuryCloudsTextureID, overcastLuxuryClouds);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_LowBorderLuxuryCloudsTextureID, lowBorderLuxuryClouds);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_HighBorderLuxuryCloudsTextureID, highBorderLuxuryClouds);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_LowNimbusLuxuryCloudsTextureID, lowNimbusLuxuryClouds);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_MidNimbusLuxuryCloudsTextureID, midNimbusLuxuryClouds);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_HighNimbusLuxuryCloudsTextureID, highNimbusLuxuryClouds);
+            Shader.SetGlobalTexture(CozyShaderIDs.CZY_LuxuryVariationTextureID, luxuryVariation);
+
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_PowerID, gradientExponent);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_SunSizeID, sunSize);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_SunColorID, sunColor);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_MoonColorID, moonColor);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_SunHaloFalloffID, sunFalloff);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_SunHaloColorID, sunFlareColor);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_MoonFlareColorID, moonFlareColor);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_MoonFlareFalloffID, moonFalloff);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_GalaxyColor1ID, galaxy1Color);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_GalaxyColor2ID, galaxy2Color);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_GalaxyColor3ID, galaxy3Color);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_LightColumnColorID, lightScatteringColor);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_RainbowSizeID, rainbowPosition);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_RainbowWidthID, rainbowWidth);
+
+            if (windModule)
+                Shader.SetGlobalVector(CozyShaderIDs.CZY_StormDirectionID, windModule.WindDirection);
+            else
+                Shader.SetGlobalVector(CozyShaderIDs.CZY_StormDirectionID, -Vector3.right);
+
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_CloudColorID, cloudColor);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_CloudHighlightColorID, cloudHighlightColor);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_AltoCloudColorID, highAltitudeCloudColor);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_CloudTextureColorID, cloudTextureColor);
+            Shader.SetGlobalColor(CozyShaderIDs.CZY_CloudMoonColorID, cloudMoonColor);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_SunFlareFalloffID, cloudSunHighlightFalloff);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_CloudMoonFalloffID, cloudMoonHighlightFalloff);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_WindSpeedID, cloudWindSpeed);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_CloudCohesionID, cloudCohesion);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_SpherizeID, spherize);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_ShadowingDistanceID, shadowDistance);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_ClippingThresholdID, clippingThreshold);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_CloudThicknessID, cloudThickness);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_MainCloudScaleID, cloudMainScale);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_DetailScaleID, cloudDetailScale);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_DetailAmountID, cloudDetailAmount);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_TextureAmountID, textureAmount);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_AltocumulusScaleID, acScale);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_CirrostratusMoveSpeedID, cirroMoveSpeed);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_CirrusMoveSpeedID, cirrusMoveSpeed);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_ChemtrailsMoveSpeedID, chemtrailsMoveSpeed);
+            Shader.SetGlobalFloat(CozyShaderIDs.CZY_DayPercentageID, modifiedDayPercentage);
 
 
-        }
-
-        /// <summary>
-        /// Sets the actual shader variables of the sky dome, fog dome, and cloud dome.
-        /// </summary> 
-        public void SetShaderVariables()
-        {
-
-            if (freezeUpdateInEditMode && !Application.isPlaying)
-                return;
-
-            if (!skyMesh || !cloudMesh || !fogMesh)
-                SetupReferences();
-
-
-            Material skybox = skyMesh.sharedMaterial;
-            Material clouds = cloudMesh.sharedMaterial;
-            Material fog = fogMesh.sharedMaterial;
-
-            if (clouds.HasProperty("_MinCloudCover"))
-                clouds.SetFloat("_MinCloudCover", 0.9f);
-            if (clouds.HasProperty("_MaxCloudCover"))
-                clouds.SetFloat("_MaxCloudCover", 1.1f);
-            if (clouds.HasProperty("_CumulusCoverageMultiplier"))
-                clouds.SetFloat("_CumulusCoverageMultiplier", cumulus);
-            if (clouds.HasProperty("_NimbusMultiplier"))
-                clouds.SetFloat("_NimbusMultiplier", nimbus);
-            if (clouds.HasProperty("_NimbusHeight"))
-                clouds.SetFloat("_NimbusHeight", nimbusHeight);
-            if (clouds.HasProperty("_NimbusVariation"))
-                clouds.SetFloat("_NimbusVariation", nimbusVariation);
-            if (clouds.HasProperty("_BorderHeight"))
-                clouds.SetFloat("_BorderHeight", border);
-            if (clouds.HasProperty("_BorderEffect"))
-                clouds.SetFloat("_BorderEffect", borderEffect);
-            if (clouds.HasProperty("_BorderVariation"))
-                clouds.SetFloat("_BorderVariation", borderVariation);
-            if (clouds.HasProperty("_AltocumulusMultiplier"))
-                clouds.SetFloat("_AltocumulusMultiplier", altocumulus);
-            if (clouds.HasProperty("_CirrostratusMultiplier"))
-                clouds.SetFloat("_CirrostratusMultiplier", cirrostratus);
-            if (clouds.HasProperty("_ChemtrailsMultiplier"))
-                clouds.SetFloat("_ChemtrailsMultiplier", chemtrails);
-            if (clouds.HasProperty("_CirrusMultiplier"))
-                clouds.SetFloat("_CirrusMultiplier", cirrus);
-            if (clouds.HasProperty("_CloudTexture"))
-                clouds.SetTexture("_CloudTexture", cloudTexture);
-            if (clouds.HasProperty("_TexturePanDirection"))
-                clouds.SetVector("_TexturePanDirection", texturePanDirection);
-
-
-
-            if (atmosphereProfile.skyZenithColor.systemContainsProp)
-                skybox.SetColor("_ZenithColor", FilterColor(skyZenithColor));
-            if (atmosphereProfile.skyZenithColor.systemContainsProp)
-                skybox.SetColor("_HorizonColor", FilterColor(skyHorizonColor));
-            if (atmosphereProfile.starColor.systemContainsProp)
-                skybox.SetColor("_StarColor", starColor);
-            if (atmosphereProfile.galaxyIntensity.systemContainsProp)
-                skybox.SetFloat("_GalaxyMultiplier", galaxyIntensity);
-            if (skybox.HasProperty("_RainbowIntensity"))
-                skybox.SetFloat("_RainbowIntensity", rainbowIntensity);
-            if (clouds.HasProperty("_SunDirection"))
-                clouds.SetVector("_SunDirection", -sunTransform.forward);
-
-            if (atmosphereProfile.gradientExponent.systemContainsProp)
-                skybox.SetFloat("_Power", gradientExponent);
-            if (atmosphereProfile.atmosphereVariationMax.systemContainsProp)
-                skybox.SetFloat("_PatchworkHeight", atmosphereVariationMax);
-            if (atmosphereProfile.atmosphereVariationMin.systemContainsProp)
-                skybox.SetFloat("_PatchworkVariation", atmosphereVariationMin);
-            if (atmosphereProfile.atmosphereBias.systemContainsProp)
-                skybox.SetFloat("_PatchworkBias", atmosphereBias);
-            if (atmosphereProfile.sunSize.systemContainsProp)
-                skybox.SetFloat("_SunSize", sunSize);
-            if (atmosphereProfile.sunColor.systemContainsProp)
-                skybox.SetColor("_SunColor", FilterColor(sunColor) * sunFilter);
-            if (atmosphereProfile.sunFalloff.systemContainsProp)
-                skybox.SetFloat("_SunFlareFalloff", sunFalloff);
-            if (atmosphereProfile.sunFlareColor.systemContainsProp)
-                skybox.SetColor("_SunFlareColor", FilterColor(sunFlareColor) * sunFilter);
-            if (atmosphereProfile.moonFlareColor.systemContainsProp)
-                skybox.SetColor("_MoonFlareColor", FilterColor(moonFlareColor));
-            if (atmosphereProfile.moonFalloff.systemContainsProp)
-                skybox.SetFloat("_MoonFlareFalloff", moonFalloff);
-            if (atmosphereProfile.galaxy1Color.systemContainsProp)
-                skybox.SetColor("_GalaxyColor1", galaxy1Color);
-            if (atmosphereProfile.galaxy2Color.systemContainsProp)
-                skybox.SetColor("_GalaxyColor2", galaxy2Color);
-            if (atmosphereProfile.galaxy3Color.systemContainsProp)
-                skybox.SetColor("_GalaxyColor3", galaxy3Color);
-            if (atmosphereProfile.lightScatteringColor.systemContainsProp)
-                skybox.SetColor("_LightColumnColor", lightScatteringColor);
-            if (atmosphereProfile.rainbowPosition.systemContainsProp)
-                skybox.SetFloat("_RainbowSize", rainbowPosition);
-            if (atmosphereProfile.rainbowWidth.systemContainsProp)
-                skybox.SetFloat("_RainbowWidth", rainbowWidth);
-
-            if (VFX)
-                if (clouds.HasProperty("_StormDirection"))
-                    clouds.SetVector("_StormDirection", -VFX.windManager.windDirection);
-
-            if (atmosphereProfile.cloudColor.systemContainsProp)
-                clouds.SetColor("_CloudColor", FilterColor(cloudColor) * cloudFilter);
-            if (atmosphereProfile.cloudHighlightColor.systemContainsProp)
-                clouds.SetColor("_CloudHighlightColor", FilterColor(cloudHighlightColor) * sunFilter);
-            if (atmosphereProfile.highAltitudeCloudColor.systemContainsProp)
-                clouds.SetColor("_AltoCloudColor", FilterColor(highAltitudeCloudColor) * cloudFilter);
-            if (atmosphereProfile.cloudTextureColor.systemContainsProp)
-                clouds.SetColor("_CloudTextureColor", FilterColor(cloudTextureColor) * cloudFilter);
-            if (atmosphereProfile.cloudMoonColor.systemContainsProp)
-                clouds.SetColor("_MoonColor", FilterColor(cloudMoonColor));
-            if (atmosphereProfile.cloudSunHighlightFalloff.systemContainsProp)
-                clouds.SetFloat("_SunFlareFalloff", cloudSunHighlightFalloff);
-            if (atmosphereProfile.cloudMoonHighlightFalloff.systemContainsProp)
-                clouds.SetFloat("_MoonFlareFalloff", cloudMoonHighlightFalloff);
-            if (atmosphereProfile.cloudWindSpeed.systemContainsProp)
-                clouds.SetFloat("_WindSpeed", cloudWindSpeed);
-            if (atmosphereProfile.cloudCohesion.systemContainsProp)
-                clouds.SetFloat("_CloudCohesion", cloudCohesion);
-            if (atmosphereProfile.spherize.systemContainsProp)
-                clouds.SetFloat("_Spherize", spherize);
-            if (atmosphereProfile.shadowDistance.systemContainsProp)
-                clouds.SetFloat("_ShadowingDistance", shadowDistance);
-            if (atmosphereProfile.clippingThreshold.systemContainsProp)
-                clouds.SetFloat("_ClippingThreshold", clippingThreshold);
-            if (atmosphereProfile.cloudThickness.systemContainsProp)
-                clouds.SetFloat("_CloudThickness", cloudThickness);
-            if (atmosphereProfile.cloudMainScale.systemContainsProp)
-                clouds.SetFloat("_MainCloudScale", cloudMainScale);
-            if (atmosphereProfile.cloudDetailScale.systemContainsProp)
-                clouds.SetFloat("_DetailScale", cloudDetailScale);
-            if (atmosphereProfile.cloudDetailAmount.systemContainsProp)
-                clouds.SetFloat("_DetailAmount", cloudDetailAmount);
-            if (atmosphereProfile.textureAmount.systemContainsProp)
-                clouds.SetFloat("_TextureAmount", textureAmount);
-            if (atmosphereProfile.acScale.systemContainsProp)
-                clouds.SetFloat("_AltocumulusScale", acScale);
-            if (atmosphereProfile.cirroMoveSpeed.systemContainsProp)
-                clouds.SetFloat("_CirrostratusMoveSpeed", cirroMoveSpeed);
-            if (atmosphereProfile.cirrusMoveSpeed.systemContainsProp)
-                clouds.SetFloat("_CirrusMoveSpeed", cirrusMoveSpeed);
-            if (atmosphereProfile.chemtrailsMoveSpeed.systemContainsProp)
-                clouds.SetFloat("_ChemtrailsMoveSpeed", chemtrailsMoveSpeed);
-
-            if (fogStyle == FogStyle.stylized || fogStyle == FogStyle.heightFog || fogStyle == FogStyle.steppedFog)
-            {
-                fog.SetFloat("LightIntensity", fogLightFlareIntensity);
-                fog.SetFloat("_LightFalloff", fogLightFlareFalloff);
-                fog.SetFloat("_FlareSquish", fogLightFlareSquish);
-                fog.SetFloat("_FogOffset", fogHeight);
-                fog.SetFloat("_FogColorStart1", atmosphereProfile.fogStart1);
-                fog.SetFloat("_FogColorStart2", atmosphereProfile.fogStart2);
-                fog.SetFloat("_FogColorStart3", atmosphereProfile.fogStart3);
-                fog.SetFloat("_FogColorStart4", atmosphereProfile.fogStart4);
-                fog.SetFloat("_FogDepthMultiplier", fogDensity * fogDensityMultiplier);
-                fog.SetColor("_LightColor", FilterColor(fogFlareColor));
-                fog.SetColor("_FogColor1", FilterColor(fogColor1));
-                fog.SetColor("_FogColor2", FilterColor(fogColor2));
-                fog.SetColor("_FogColor3", FilterColor(fogColor3));
-                fog.SetColor("_FogColor4", FilterColor(fogColor4));
-                fog.SetColor("_FogColor5", FilterColor(fogColor5));
-                fog.SetVector("_SunDirection", -sunTransform.forward);
-
-            }
-            else if (fogStyle == FogStyle.unity)
+            if (fogStyle == FogStyle.unity)
             {
 
                 RenderSettings.fogColor = FilterColor(fogColor5);
@@ -1044,437 +711,60 @@ namespace DistantLands.Cozy
 
 
             sunTransform.parent.eulerAngles = new Vector3(0, sunDirection, sunPitch);
-            sunTransform.localEulerAngles = new Vector3((perennialProfile.sunMovementCurve.Evaluate(dayPercentage)) - 90, 0, 0);
-            sunLight.color = sunlightColor * sunFilter;
-            if (disableSunAtNight)
-                sunLight.enabled = (sunLight.color.r + sunLight.color.g + sunLight.color.b > 0);
-
-            if (cozyMaterials)
-                rainbowIntensity = useRainbow ? cozyMaterials.wetness * (1 - starColor.a) : 0;
-
-
-            RenderSettings.sun = sunLight;
-            RenderSettings.defaultReflectionMode = UnityEngine.Rendering.DefaultReflectionMode.Custom;
-            RenderSettings.ambientSkyColor = FilterColor(ambientLightZenithColor * ambientLightMultiplier);
-            RenderSettings.ambientEquatorColor = FilterColor(ambientLightHorizonColor * (1 - (cumulus / 2)) * ambientLightMultiplier);
-            RenderSettings.ambientGroundColor = FilterColor(ambientLightHorizonColor * Color.gray * (1 - (cumulus / 2)) * ambientLightMultiplier);
-
-
-
-        }
-
-        /// <summary>
-        /// Statically sets variables. Only used on awake or in the editor.
-        /// </summary> 
-        public void ResetVariables()
-        {
-
-
-            if (cozyMaterials)
-                rainbowIntensity = useRainbow ? cozyMaterials.wetness * (1 - starColor.a) : 0;
-            else
-                rainbowIntensity = 0;
-
-
-            cumulus = currentWeather.cloudSettings.cumulusCoverage;
-            altocumulus = currentWeather.cloudSettings.altocumulusCoverage;
-            cirrus = currentWeather.cloudSettings.cirrusCoverage;
-            cirrostratus = currentWeather.cloudSettings.cirrostratusCoverage;
-            chemtrails = currentWeather.cloudSettings.chemtrailCoverage;
-            nimbus = currentWeather.cloudSettings.nimbusCoverage;
-            nimbusHeight = currentWeather.cloudSettings.nimbusHeightEffect;
-            nimbusVariation = currentWeather.cloudSettings.nimbusVariation;
-            border = currentWeather.cloudSettings.borderHeight;
-            borderEffect = currentWeather.cloudSettings.borderEffect;
-            borderVariation = currentWeather.cloudSettings.borderVariation;
-
-
-            ambientLightHorizonColor = FilterColor(ambientLightHorizonColor);
-            ambientLightZenithColor = FilterColor(ambientLightZenithColor);
-
-            fogDensity = currentWeather.fogDensity;
-
-
-        }
-
-        /// <summary>
-        /// Runs a check to verify that only properties used by the current shader settings are set at runtime.
-        /// </summary> 
-        void CheckSystemProperties()
-        {
-
-
-            Material skyMat = skyMesh.sharedMaterial;
-            Material cloudsMat = cloudMesh.sharedMaterial;
-
-
-            atmosphereProfile.skyZenithColor.systemContainsProp = skyMat.HasProperty("_ZenithColor");
-            atmosphereProfile.skyHorizonColor.systemContainsProp = skyMat.HasProperty("_HorizonColor");
-            atmosphereProfile.gradientExponent.systemContainsProp = skyMat.HasProperty("_Power");
-            atmosphereProfile.atmosphereVariationMin.systemContainsProp = skyMat.HasProperty("_PatchworkHeight");
-            atmosphereProfile.atmosphereVariationMax.systemContainsProp = skyMat.HasProperty("_PatchworkVariation");
-            atmosphereProfile.atmosphereBias.systemContainsProp = skyMat.HasProperty("_PatchworkBias");
-            atmosphereProfile.sunColor.systemContainsProp = skyMat.HasProperty("_SunColor");
-            atmosphereProfile.sunSize.systemContainsProp = skyMat.HasProperty("_SunSize");
-            atmosphereProfile.sunFalloff.systemContainsProp = skyMat.HasProperty("_SunFlareFalloff");
-            atmosphereProfile.sunFlareColor.systemContainsProp = skyMat.HasProperty("_SunFlareColor");
-            atmosphereProfile.galaxy1Color.systemContainsProp = skyMat.HasProperty("_GalaxyColor1");
-            atmosphereProfile.galaxy2Color.systemContainsProp = skyMat.HasProperty("_GalaxyColor2");
-            atmosphereProfile.galaxy3Color.systemContainsProp = skyMat.HasProperty("_GalaxyColor3");
-            atmosphereProfile.moonFlareColor.systemContainsProp = skyMat.HasProperty("_MoonFlareColor");
-            atmosphereProfile.moonFalloff.systemContainsProp = skyMat.HasProperty("_MoonFlareFalloff");
-            atmosphereProfile.rainbowWidth.systemContainsProp = skyMat.HasProperty("_RainbowWidth");
-            atmosphereProfile.rainbowPosition.systemContainsProp = skyMat.HasProperty("_RainbowSize");
-            atmosphereProfile.starColor.systemContainsProp = skyMat.HasProperty("_StarColor");
-            atmosphereProfile.lightScatteringColor.systemContainsProp = skyMat.HasProperty("_LightColumnColor");
-            atmosphereProfile.galaxyIntensity.systemContainsProp = skyMat.HasProperty("_GalaxyMultiplier");
-
-
-            atmosphereProfile.cloudColor.systemContainsProp = cloudsMat.HasProperty("_CloudColor");
-            atmosphereProfile.cloudHighlightColor.systemContainsProp = cloudsMat.HasProperty("_CloudHighlightColor");
-            atmosphereProfile.highAltitudeCloudColor.systemContainsProp = cloudsMat.HasProperty("_AltoCloudColor");
-            atmosphereProfile.clippingThreshold.systemContainsProp = cloudsMat.HasProperty("_ClippingThreshold");
-            atmosphereProfile.highAltitudeCloudColor.systemContainsProp = cloudsMat.HasProperty("_AltoCloudColor");
-            atmosphereProfile.cloudMoonHighlightFalloff.systemContainsProp = cloudsMat.HasProperty("_MoonFlareFalloff");
-            atmosphereProfile.cloudMoonColor.systemContainsProp = cloudsMat.HasProperty("_MoonColor");
-            atmosphereProfile.cloudMainScale.systemContainsProp = cloudsMat.HasProperty("_MainCloudScale");
-            atmosphereProfile.cloudDetailScale.systemContainsProp = cloudsMat.HasProperty("_DetailScale");
-            atmosphereProfile.cloudDetailAmount.systemContainsProp = cloudsMat.HasProperty("_DetailAmount");
-            atmosphereProfile.cloudSunHighlightFalloff.systemContainsProp = cloudsMat.HasProperty("_SunFlareFalloff");
-            atmosphereProfile.cloudWindSpeed.systemContainsProp = cloudsMat.HasProperty("_WindSpeed");
-            atmosphereProfile.cloudDetailScale.systemContainsProp = cloudsMat.HasProperty("_DetailScale");
-            atmosphereProfile.cloudDetailAmount.systemContainsProp = cloudsMat.HasProperty("_DetailAmount");
-            atmosphereProfile.acScale.systemContainsProp = cloudsMat.HasProperty("_AltocumulusScale");
-            atmosphereProfile.chemtrailsMoveSpeed.systemContainsProp = cloudsMat.HasProperty("_ChemtrailsMoveSpeed");
-            atmosphereProfile.cirroMoveSpeed.systemContainsProp = cloudsMat.HasProperty("_CirrostratusMoveSpeed");
-            atmosphereProfile.cirrusMoveSpeed.systemContainsProp = cloudsMat.HasProperty("_CirrusMoveSpeed");
-            atmosphereProfile.cloudCohesion.systemContainsProp = cloudsMat.HasProperty("_CloudCohesion");
-            atmosphereProfile.spherize.systemContainsProp = cloudsMat.HasProperty("_Spherize");
-            atmosphereProfile.shadowDistance.systemContainsProp = cloudsMat.HasProperty("_ShadowingDistance");
-            atmosphereProfile.cloudThickness.systemContainsProp = cloudsMat.HasProperty("_CloudThickness");
-
-
-
-        }
-
-        /// <summary>
-        /// Smoothly interpolates the current atmosphere profile and all of the impacted settings by the transition time.
-        /// </summary> 
-        public void ChangeAtmosphere(AtmosphereProfile start, AtmosphereProfile end, float time)
-        {
-
-            if (atmosphereControl == AtmosphereSelection.native || transitioningAtmosphere)
+            sunTransform.localEulerAngles = new Vector3((modifiedDayPercentage * 360) - 90, 0, 0);
+            Shader.SetGlobalVector(CozyShaderIDs.CZY_SunDirectionID, -sunTransform.forward);
+#if COZY_URP
+            if (sunLensFlare)
             {
-
-                StartCoroutine(TransitionAtmosphere(end, time));
-
+                sunLensFlare.intensity = sunFlare.flare ? (sunlightColor * sunFilter).grayscale * sunFlare.intensity : 0;
+                sunLensFlare.lensFlareData = sunFlare.flare;
+                sunLensFlare.allowOffScreen = sunFlare.allowOffscreen;
+                sunLensFlare.radialScreenAttenuationCurve = sunFlare.screenAttenuation;
+                sunLensFlare.distanceAttenuationCurve = sunFlare.screenAttenuation;
+                sunLensFlare.scale = sunFlare.scale;
+                sunLensFlare.occlusionRadius = sunFlare.occlusionRadius;
+                sunLensFlare.useOcclusion = sunFlare.useOcclusion;
+            }
+#endif
+            if (handleSceneLighting)
+            {
+                sunLight.color = sunlightColor * sunFilter;
+                if (disableSunAtNight)
+                    sunLight.enabled = sunLight.color.r + sunLight.color.g + sunLight.color.b > 0;
             }
             else
-                StartCoroutine(TransitionAtmosphere(start, end, time));
+            {
+                sunLight.enabled = false;
+            }
+
+            if (climateModule)
+            {
+                if (useRainbow)
+                    rainbowIntensity = climateModule.wetness * (1 - galaxyIntensity);
+                else
+                    rainbowIntensity = 0;
+            }
+
+            if (handleSceneLighting)
+            {
+                RenderSettings.sun = sunLight;
+                RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
+                RenderSettings.ambientMode = AmbientMode.Trilight;
+                RenderSettings.ambientSkyColor = ambientLightZenithColor * ambientLightMultiplier;
+                RenderSettings.ambientEquatorColor = ambientLightHorizonColor * (1 - (cumulus / 2)) * ambientLightMultiplier;
+                RenderSettings.ambientGroundColor = ambientLightHorizonColor * Color.gray * (1 - (cumulus / 2)) * ambientLightMultiplier;
+            }
+
+            SetStarColors(starColor);
+            SetCloudColors(cloudColor);
+
 
         }
 
-        IEnumerator TransitionAtmosphere(AtmosphereProfile start, AtmosphereProfile end, float time)
+
+        public T GetFXRuntimeRef<T>(string name) where T : Component
         {
-
-            if (atmosphereControl == AtmosphereSelection.native)
-            {
-                Debug.LogWarning("Atmosphere transitioning requires the atmosphere selection to be set to profile.");
-                yield break;
-            }
-
-            transitioningAtmosphere = true;
-            float t = time;
-
-            while (t > 0)
-            {
-
-                float div = 1 - (t / time);
-                yield return new WaitForEndOfFrame();
-
-                gradientExponent = Mathf.Lerp(start.gradientExponent.GetFloatValue(dayPercentage),
-                    end.gradientExponent.GetFloatValue(dayPercentage), div);
-                acScale = Mathf.Lerp(start.acScale.GetFloatValue(dayPercentage),
-                    end.acScale.GetFloatValue(dayPercentage), div);
-                ambientLightHorizonColor = Color.Lerp(start.ambientLightHorizonColor.GetColorValue(dayPercentage),
-                    end.ambientLightHorizonColor.GetColorValue(dayPercentage), div);
-                ambientLightZenithColor = Color.Lerp(start.ambientLightZenithColor.GetColorValue(dayPercentage),
-                    end.ambientLightZenithColor.GetColorValue(dayPercentage), div);
-                ambientLightMultiplier = Mathf.Lerp(start.ambientLightMultiplier.GetFloatValue(dayPercentage),
-                    end.ambientLightMultiplier.GetFloatValue(dayPercentage), div);
-                atmosphereBias = Mathf.Lerp(start.atmosphereBias.GetFloatValue(dayPercentage),
-                    end.atmosphereBias.GetFloatValue(dayPercentage), div);
-                atmosphereVariationMax = Mathf.Lerp(start.atmosphereVariationMax.GetFloatValue(dayPercentage),
-                    end.atmosphereVariationMax.GetFloatValue(dayPercentage), div);
-                atmosphereVariationMin = Mathf.Lerp(start.atmosphereVariationMin.GetFloatValue(dayPercentage),
-                    end.atmosphereVariationMin.GetFloatValue(dayPercentage), div);
-                chemtrailsMoveSpeed = Mathf.Lerp(start.chemtrailsMoveSpeed.GetFloatValue(dayPercentage),
-                    end.chemtrailsMoveSpeed.GetFloatValue(dayPercentage), div);
-                cirroMoveSpeed = Mathf.Lerp(start.cirroMoveSpeed.GetFloatValue(dayPercentage),
-                    end.cirroMoveSpeed.GetFloatValue(dayPercentage), div);
-                cirrusMoveSpeed = Mathf.Lerp(start.cirrusMoveSpeed.GetFloatValue(dayPercentage),
-                    end.cirrusMoveSpeed.GetFloatValue(dayPercentage), div);
-                clippingThreshold = Mathf.Lerp(start.clippingThreshold.GetFloatValue(dayPercentage),
-                    end.clippingThreshold.GetFloatValue(dayPercentage), div);
-                cloudCohesion = Mathf.Lerp(start.cloudCohesion.GetFloatValue(dayPercentage),
-                    end.cloudCohesion.GetFloatValue(dayPercentage), div);
-                cloudColor = Color.Lerp(start.cloudColor.GetColorValue(dayPercentage),
-                    end.cloudColor.GetColorValue(dayPercentage), div);
-                cloudDetailAmount = Mathf.Lerp(start.cloudDetailAmount.GetFloatValue(dayPercentage),
-                    end.cloudDetailAmount.GetFloatValue(dayPercentage), div);
-                cloudDetailScale = Mathf.Lerp(start.cloudDetailScale.GetFloatValue(dayPercentage),
-                    end.cloudDetailScale.GetFloatValue(dayPercentage), div);
-                cloudHighlightColor = Color.Lerp(start.cloudHighlightColor.GetColorValue(dayPercentage),
-                    end.cloudHighlightColor.GetColorValue(dayPercentage), div);
-                cloudMainScale = Mathf.Lerp(start.cloudMainScale.GetFloatValue(dayPercentage),
-                    end.cloudMainScale.GetFloatValue(dayPercentage), div);
-                cloudMoonColor = Color.Lerp(start.cloudMoonColor.GetColorValue(dayPercentage),
-                    end.cloudMoonColor.GetColorValue(dayPercentage), div);
-                cloudMoonHighlightFalloff = Mathf.Lerp(start.cloudMoonHighlightFalloff.GetFloatValue(dayPercentage),
-                    end.cloudMoonHighlightFalloff.GetFloatValue(dayPercentage), div);
-                cloudSunHighlightFalloff = Mathf.Lerp(start.cloudSunHighlightFalloff.GetFloatValue(dayPercentage),
-                    end.cloudSunHighlightFalloff.GetFloatValue(dayPercentage), div);
-                cloudTextureColor = Color.Lerp(start.cloudTextureColor.GetColorValue(dayPercentage),
-                    end.cloudTextureColor.GetColorValue(dayPercentage), div);
-                cloudThickness = Mathf.Lerp(start.cloudThickness.GetFloatValue(dayPercentage),
-                    end.cloudThickness.GetFloatValue(dayPercentage), div);
-                cloudWindSpeed = Mathf.Lerp(start.cloudWindSpeed.GetFloatValue(dayPercentage),
-                    end.cloudWindSpeed.GetFloatValue(dayPercentage), div);
-                fogColor1 = Color.Lerp(start.fogColor1.GetColorValue(dayPercentage),
-                    end.fogColor1.GetColorValue(dayPercentage), div);
-                fogColor2 = Color.Lerp(start.fogColor2.GetColorValue(dayPercentage),
-                    end.fogColor2.GetColorValue(dayPercentage), div);
-                fogColor3 = Color.Lerp(start.fogColor3.GetColorValue(dayPercentage),
-                    end.fogColor3.GetColorValue(dayPercentage), div);
-                fogColor4 = Color.Lerp(start.fogColor4.GetColorValue(dayPercentage),
-                    end.fogColor4.GetColorValue(dayPercentage), div);
-                fogColor5 = Color.Lerp(start.fogColor5.GetColorValue(dayPercentage),
-                    end.fogColor5.GetColorValue(dayPercentage), div);
-                fogStart1 = Mathf.Lerp(start.fogStart1,
-                    end.fogStart1, div);
-                fogStart2 = Mathf.Lerp(start.fogStart2,
-                    end.fogStart2, div);
-                fogStart3 = Mathf.Lerp(start.fogStart3,
-                    end.fogStart3, div);
-                fogStart4 = Mathf.Lerp(start.fogStart4,
-                    end.fogStart4, div);
-                fogDensityMultiplier = Mathf.Lerp(start.fogDensityMultiplier.GetFloatValue(dayPercentage),
-                    end.fogDensityMultiplier.GetFloatValue(dayPercentage), div);
-                fogFlareColor = Color.Lerp(start.fogFlareColor.GetColorValue(dayPercentage),
-                    end.fogFlareColor.GetColorValue(dayPercentage), div);
-                fogHeight = Mathf.Lerp(start.fogHeight.GetFloatValue(dayPercentage),
-                    end.fogHeight.GetFloatValue(dayPercentage), div);
-                fogLightFlareFalloff = Mathf.Lerp(start.fogLightFlareFalloff.GetFloatValue(dayPercentage),
-                    end.fogLightFlareFalloff.GetFloatValue(dayPercentage), div);
-                fogLightFlareIntensity = Mathf.Lerp(start.fogLightFlareIntensity.GetFloatValue(dayPercentage),
-                    end.fogLightFlareIntensity.GetFloatValue(dayPercentage), div);
-                fogLightFlareSquish = Mathf.Lerp(start.fogLightFlareSquish.GetFloatValue(dayPercentage),
-                    end.fogLightFlareSquish.GetFloatValue(dayPercentage), div);
-                galaxy1Color = Color.Lerp(start.galaxy1Color.GetColorValue(dayPercentage),
-                    end.galaxy1Color.GetColorValue(dayPercentage), div);
-                galaxy2Color = Color.Lerp(start.galaxy2Color.GetColorValue(dayPercentage),
-                    end.galaxy2Color.GetColorValue(dayPercentage), div);
-                galaxy3Color = Color.Lerp(start.galaxy3Color.GetColorValue(dayPercentage),
-                    end.galaxy3Color.GetColorValue(dayPercentage), div);
-                galaxyIntensity = Mathf.Lerp(start.galaxyIntensity.GetFloatValue(dayPercentage),
-                    end.galaxyIntensity.GetFloatValue(dayPercentage), div);
-                highAltitudeCloudColor = Color.Lerp(start.highAltitudeCloudColor.GetColorValue(dayPercentage),
-                    end.highAltitudeCloudColor.GetColorValue(dayPercentage), div);
-                lightScatteringColor = Color.Lerp(start.lightScatteringColor.GetColorValue(dayPercentage),
-                    end.lightScatteringColor.GetColorValue(dayPercentage), div);
-                moonlightColor = Color.Lerp(start.moonlightColor.GetColorValue(dayPercentage),
-                    end.moonlightColor.GetColorValue(dayPercentage), div);
-                moonFalloff = Mathf.Lerp(start.moonFalloff.GetFloatValue(dayPercentage),
-                    end.moonFalloff.GetFloatValue(dayPercentage), div);
-                moonFlareColor = Color.Lerp(start.moonFlareColor.GetColorValue(dayPercentage),
-                    end.moonFlareColor.GetColorValue(dayPercentage), div);
-                rainbowPosition = Mathf.Lerp(start.rainbowPosition.GetFloatValue(dayPercentage),
-                    end.rainbowPosition.GetFloatValue(dayPercentage), div);
-                rainbowWidth = Mathf.Lerp(start.rainbowWidth.GetFloatValue(dayPercentage),
-                    end.rainbowWidth.GetFloatValue(dayPercentage), div);
-                shadowDistance = Mathf.Lerp(start.shadowDistance.GetFloatValue(dayPercentage),
-                    end.shadowDistance.GetFloatValue(dayPercentage), div);
-                skyHorizonColor = Color.Lerp(start.skyHorizonColor.GetColorValue(dayPercentage),
-                    end.skyHorizonColor.GetColorValue(dayPercentage), div);
-                skyZenithColor = Color.Lerp(start.skyZenithColor.GetColorValue(dayPercentage),
-                    end.skyZenithColor.GetColorValue(dayPercentage), div);
-                spherize = Mathf.Lerp(start.spherize.GetFloatValue(dayPercentage),
-                    end.spherize.GetFloatValue(dayPercentage), div);
-                starColor = Color.Lerp(start.starColor.GetColorValue(dayPercentage),
-                    end.starColor.GetColorValue(dayPercentage), div);
-                sunColor = Color.Lerp(start.sunColor.GetColorValue(dayPercentage),
-                    end.sunColor.GetColorValue(dayPercentage), div);
-                sunDirection = Mathf.Lerp(start.sunDirection.GetFloatValue(dayPercentage),
-                    end.sunDirection.GetFloatValue(dayPercentage), div);
-                sunFalloff = Mathf.Lerp(start.sunFalloff.GetFloatValue(dayPercentage),
-                    end.sunFalloff.GetFloatValue(dayPercentage), div);
-                sunFlareColor = Color.Lerp(start.sunFlareColor.GetColorValue(dayPercentage),
-                    end.sunFlareColor.GetColorValue(dayPercentage), div);
-                sunlightColor = Color.Lerp(start.sunlightColor.GetColorValue(dayPercentage),
-                    end.sunlightColor.GetColorValue(dayPercentage), div);
-                sunPitch = Mathf.Lerp(start.sunPitch.GetFloatValue(dayPercentage),
-                    end.sunPitch.GetFloatValue(dayPercentage), div);
-                sunSize = Mathf.Lerp(start.sunSize.GetFloatValue(dayPercentage),
-                    end.sunSize.GetFloatValue(dayPercentage), div);
-                textureAmount = Mathf.Lerp(start.textureAmount.GetFloatValue(dayPercentage),
-                    end.textureAmount.GetFloatValue(dayPercentage), div);
-
-                t -= Time.deltaTime;
-
-            }
-
-            transitioningAtmosphere = false;
-
-        }
-
-        IEnumerator TransitionAtmosphere(AtmosphereProfile end, float time)
-        {
-
-
-            float gradientExponentStart = gradientExponent;
-            float acScaleStart = acScale;
-            Color ambientLightHorizonColorStart = ambientLightHorizonColor;
-            Color ambientLightZenithColorStart = ambientLightZenithColor;
-            float ambientLightMultiplierStart = ambientLightMultiplier;
-            float atmosphereBiasStart = atmosphereBias;
-            float atmosphereVariationMaxStart = atmosphereVariationMax;
-            float atmosphereVariationMinStart = atmosphereVariationMin;
-            float chemtrailsMoveSpeedStart = chemtrailsMoveSpeed;
-            float cirroMoveSpeedStart = cirroMoveSpeed;
-            float cirrusMoveSpeedStart = cirrusMoveSpeed;
-            float clippingThresholdStart = clippingThreshold;
-            float cloudCohesionStart = cloudCohesion;
-            Color cloudColorStart = cloudColor;
-            float cloudDetailAmountStart = cloudDetailAmount;
-            float cloudDetailScaleStart = cloudDetailScale;
-            Color cloudHighlightColorStart = cloudHighlightColor;
-            float cloudMainScaleStart = cloudMainScale;
-            Color cloudMoonColorStart = cloudMoonColor;
-            float cloudMoonHighlightFalloffStart = cloudMoonHighlightFalloff;
-            float cloudSunHighlightFalloffStart = cloudSunHighlightFalloff;
-            Color cloudTextureColorStart = cloudTextureColor;
-            float cloudThicknessStart = cloudThickness;
-            float cloudWindSpeedStart = cloudWindSpeed;
-            Color fogColor1Start = fogColor1;
-            Color fogColor2Start = fogColor2;
-            Color fogColor3Start = fogColor3;
-            Color fogColor4Start = fogColor4;
-            Color fogColor5Start = fogColor5;
-            float fogStart1Start = fogStart1;
-            float fogStart2Start = fogStart2;
-            float fogStart3Start = fogStart3;
-            float fogStart4Start = fogStart4;
-            float fogDensityMultiplierStart = fogDensityMultiplier;
-            Color fogFlareColorStart = fogFlareColor;
-            float fogHeightStart = fogHeight;
-            float fogLightFlareFalloffStart = fogLightFlareFalloff;
-            float fogLightFlareIntensityStart = fogLightFlareIntensity;
-            float fogLightFlareSquishStart = fogLightFlareSquish;
-            Color galaxy1ColorStart = galaxy1Color;
-            Color galaxy2ColorStart = galaxy2Color;
-            Color galaxy3ColorStart = galaxy3Color;
-            Color highAltitudeCloudColorStart = highAltitudeCloudColor;
-            Color lightScatteringColorStart = lightScatteringColor;
-            Color moonlightColorStart = moonlightColor;
-            Color moonFlareColorStart = moonFlareColor;
-            Color skyHorizonColorStart = skyHorizonColor;
-            Color skyZenithColorStart = skyZenithColor;
-            Color starColorStart = starColor;
-            Color sunColorStart = sunColor;
-            Color sunFlareColorStart = sunFlareColor;
-            Color sunlightColorStart = sunlightColor;
-            float galaxyIntensityStart = galaxyIntensity;
-            float moonFalloffStart = moonFalloff;
-            float rainbowPositionStart = rainbowPosition;
-            float rainbowWidthStart = rainbowWidth;
-            float shadowDistanceStart = shadowDistance;
-            float spherizeStart = spherize;
-            float sunDirectionStart = sunDirection;
-            float sunFalloffStart = sunFalloff;
-            float sunPitchStart = sunPitch;
-            float sunSizeStart = sunSize;
-            float textureAmountStart = textureAmount;
-
-
-            transitioningAtmosphere = true;
-            float t = time;
-
-            while (t > 0)
-            {
-
-                float div = 1 - (t / time);
-                yield return new WaitForEndOfFrame();
-
-                gradientExponent = Mathf.Lerp(gradientExponentStart, end.gradientExponent.GetFloatValue(dayPercentage), div);
-                acScale = Mathf.Lerp(acScaleStart, end.acScale.GetFloatValue(dayPercentage), div);
-                ambientLightHorizonColor = Color.Lerp(ambientLightHorizonColorStart, end.ambientLightHorizonColor.GetColorValue(dayPercentage), div);
-                ambientLightZenithColor = Color.Lerp(ambientLightZenithColorStart, end.ambientLightZenithColor.GetColorValue(dayPercentage), div);
-                ambientLightMultiplier = Mathf.Lerp(ambientLightMultiplierStart, end.ambientLightMultiplier.GetFloatValue(dayPercentage), div);
-                atmosphereBias = Mathf.Lerp(atmosphereBiasStart, end.atmosphereBias.GetFloatValue(dayPercentage), div);
-                atmosphereVariationMax = Mathf.Lerp(atmosphereVariationMaxStart, end.atmosphereVariationMax.GetFloatValue(dayPercentage), div);
-                atmosphereVariationMin = Mathf.Lerp(atmosphereVariationMinStart, end.atmosphereVariationMin.GetFloatValue(dayPercentage), div);
-                chemtrailsMoveSpeed = Mathf.Lerp(chemtrailsMoveSpeedStart, end.chemtrailsMoveSpeed.GetFloatValue(dayPercentage), div);
-                cirroMoveSpeed = Mathf.Lerp(cirroMoveSpeedStart, end.cirroMoveSpeed.GetFloatValue(dayPercentage), div);
-                cirrusMoveSpeed = Mathf.Lerp(cirrusMoveSpeedStart, end.cirrusMoveSpeed.GetFloatValue(dayPercentage), div);
-                clippingThreshold = Mathf.Lerp(clippingThresholdStart, end.clippingThreshold.GetFloatValue(dayPercentage), div);
-                cloudCohesion = Mathf.Lerp(cloudCohesionStart, end.cloudCohesion.GetFloatValue(dayPercentage), div);
-                cloudColor = Color.Lerp(cloudColorStart, end.cloudColor.GetColorValue(dayPercentage), div);
-                cloudDetailAmount = Mathf.Lerp(cloudDetailAmountStart, end.cloudDetailAmount.GetFloatValue(dayPercentage), div);
-                cloudDetailScale = Mathf.Lerp(cloudDetailScaleStart, end.cloudDetailScale.GetFloatValue(dayPercentage), div);
-                cloudHighlightColor = Color.Lerp(cloudHighlightColorStart, end.cloudHighlightColor.GetColorValue(dayPercentage), div);
-                cloudMainScale = Mathf.Lerp(cloudMainScaleStart, end.cloudMainScale.GetFloatValue(dayPercentage), div);
-                cloudMoonColor = Color.Lerp(cloudMoonColorStart, end.cloudMoonColor.GetColorValue(dayPercentage), div);
-                cloudMoonHighlightFalloff = Mathf.Lerp(cloudMoonHighlightFalloffStart, end.cloudMoonHighlightFalloff.GetFloatValue(dayPercentage), div);
-                cloudSunHighlightFalloff = Mathf.Lerp(cloudSunHighlightFalloffStart, end.cloudSunHighlightFalloff.GetFloatValue(dayPercentage), div);
-                cloudTextureColor = Color.Lerp(cloudTextureColorStart, end.cloudTextureColor.GetColorValue(dayPercentage), div);
-                cloudThickness = Mathf.Lerp(cloudThicknessStart, end.cloudThickness.GetFloatValue(dayPercentage), div);
-                cloudWindSpeed = Mathf.Lerp(cloudWindSpeedStart, end.cloudWindSpeed.GetFloatValue(dayPercentage), div);
-                fogColor1 = Color.Lerp(fogColor1Start, end.fogColor1.GetColorValue(dayPercentage), div);
-                fogColor2 = Color.Lerp(fogColor2Start, end.fogColor2.GetColorValue(dayPercentage), div);
-                fogColor3 = Color.Lerp(fogColor3Start, end.fogColor3.GetColorValue(dayPercentage), div);
-                fogColor4 = Color.Lerp(fogColor4Start, end.fogColor4.GetColorValue(dayPercentage), div);
-                fogColor5 = Color.Lerp(fogColor5Start, end.fogColor5.GetColorValue(dayPercentage), div);
-                fogStart1 = Mathf.Lerp(fogStart1Start, end.fogStart1, div);
-                fogStart2 = Mathf.Lerp(fogStart2Start, end.fogStart2, div);
-                fogStart3 = Mathf.Lerp(fogStart3Start, end.fogStart3, div);
-                fogStart4 = Mathf.Lerp(fogStart4Start, end.fogStart4, div);
-                fogDensityMultiplier = Mathf.Lerp(fogDensityMultiplierStart, end.fogDensityMultiplier.GetFloatValue(dayPercentage), div);
-                fogFlareColor = Color.Lerp(fogFlareColorStart, end.fogFlareColor.GetColorValue(dayPercentage), div);
-                fogHeight = Mathf.Lerp(fogHeightStart, end.fogHeight.GetFloatValue(dayPercentage), div);
-                fogLightFlareFalloff = Mathf.Lerp(fogLightFlareFalloffStart, end.fogLightFlareFalloff.GetFloatValue(dayPercentage), div);
-                fogLightFlareIntensity = Mathf.Lerp(fogLightFlareIntensityStart, end.fogLightFlareIntensity.GetFloatValue(dayPercentage), div);
-                fogLightFlareSquish = Mathf.Lerp(fogLightFlareSquishStart, end.fogLightFlareSquish.GetFloatValue(dayPercentage), div);
-                galaxy1Color = Color.Lerp(galaxy1ColorStart, end.galaxy1Color.GetColorValue(dayPercentage), div);
-                galaxy2Color = Color.Lerp(galaxy2ColorStart, end.galaxy2Color.GetColorValue(dayPercentage), div);
-                galaxy3Color = Color.Lerp(galaxy3ColorStart, end.galaxy3Color.GetColorValue(dayPercentage), div);
-                galaxyIntensity = Mathf.Lerp(galaxyIntensityStart, end.galaxyIntensity.GetFloatValue(dayPercentage), div);
-                highAltitudeCloudColor = Color.Lerp(highAltitudeCloudColorStart, end.highAltitudeCloudColor.GetColorValue(dayPercentage), div);
-                lightScatteringColor = Color.Lerp(lightScatteringColorStart, end.lightScatteringColor.GetColorValue(dayPercentage), div);
-                moonlightColor = Color.Lerp(moonlightColorStart, end.moonlightColor.GetColorValue(dayPercentage), div);
-                moonFalloff = Mathf.Lerp(moonFalloffStart, end.moonFalloff.GetFloatValue(dayPercentage), div);
-                moonFlareColor = Color.Lerp(moonFlareColorStart, end.moonFlareColor.GetColorValue(dayPercentage), div);
-                rainbowPosition = Mathf.Lerp(rainbowPositionStart, end.rainbowPosition.GetFloatValue(dayPercentage), div);
-                rainbowWidth = Mathf.Lerp(rainbowWidthStart, end.rainbowWidth.GetFloatValue(dayPercentage), div);
-                shadowDistance = Mathf.Lerp(shadowDistanceStart, end.shadowDistance.GetFloatValue(dayPercentage), div);
-                skyHorizonColor = Color.Lerp(skyHorizonColorStart, end.skyHorizonColor.GetColorValue(dayPercentage), div);
-                skyZenithColor = Color.Lerp(skyZenithColorStart, end.skyZenithColor.GetColorValue(dayPercentage), div);
-                spherize = Mathf.Lerp(spherizeStart, end.spherize.GetFloatValue(dayPercentage), div);
-                starColor = Color.Lerp(starColorStart, end.starColor.GetColorValue(dayPercentage), div);
-                sunColor = Color.Lerp(sunColorStart, end.sunColor.GetColorValue(dayPercentage), div);
-                sunDirection = Mathf.Lerp(sunDirectionStart, end.sunDirection.GetFloatValue(dayPercentage), div);
-                sunFalloff = Mathf.Lerp(sunFalloffStart, end.sunFalloff.GetFloatValue(dayPercentage), div);
-                sunFlareColor = Color.Lerp(sunFlareColorStart, end.sunFlareColor.GetColorValue(dayPercentage), div);
-                sunlightColor = Color.Lerp(sunlightColorStart, end.sunlightColor.GetColorValue(dayPercentage), div);
-                sunPitch = Mathf.Lerp(sunPitchStart, end.sunPitch.GetFloatValue(dayPercentage), div);
-                sunSize = Mathf.Lerp(sunSizeStart, end.sunSize.GetFloatValue(dayPercentage), div);
-                textureAmount = Mathf.Lerp(textureAmountStart, end.textureAmount.GetFloatValue(dayPercentage), div);
-
-                t -= Time.deltaTime;
-
-            }
-
-            transitioningAtmosphere = false;
-
+            return GetComponentsInChildren<T>().ToList().Find(x => x.transform.name == name);
         }
 
         /// <summary>
@@ -1482,18 +772,14 @@ namespace DistantLands.Cozy
         /// </summary> 
         public Color FilterColor(Color color)
         {
-
-            float h;
-            float s;
-            float v;
             float a = color.a;
             Color j;
 
-            Color.RGBToHSV(color, out h, out s, out v);
+
+            Color.RGBToHSV(color, out float h, out float s, out float v);
 
             s = Mathf.Clamp(s + filterSaturation, 0, 10);
             v = Mathf.Clamp(v + filterValue, 0, 10);
-
             j = Color.HSVToRGB(h, s, v);
 
             j *= filterColor;
@@ -1504,671 +790,60 @@ namespace DistantLands.Cozy
         }
 
         /// <summary>
-        /// Calculates the weather color filter based on the currently active filter FX profiles.
+        /// Statically sets variables. Only used on awake or in the editor.
         /// </summary> 
-        public void CalculateFilterColors()
+        public void ResetVariables()
         {
+            rainbowIntensity = climateModule ? useRainbow ? climateModule.wetness * (1 - starColor.a) : 0 : 0;
 
+            ambientLightHorizonColor = FilterColor(ambientLightHorizonColor);
+            ambientLightZenithColor = FilterColor(ambientLightZenithColor);
 
-            if (!Application.isPlaying)
+        }
+
+        public float dayPercentage
+        {
+            get
             {
-                foreach (FXProfile l in currentWeather.FX)
-                    try
-                    {
-                        FilterFX m = (FilterFX)l;
-                        filterSaturation = m.filterSaturation;
-                        filterValue = m.filterValue;
-                        filterColor = m.filterColor;
-                        sunFilter = m.sunFilter;
-                        cloudFilter = m.cloudFilter;
-                        return;
+                float dayPercent = sunAngle;
 
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-            }
-
-
-            if (defaultFilter == null)
-                defaultFilter = (FilterFX)Resources.Load("Default Filter");
-
-            FilterFX i = defaultFilter;
-
-            List<FilterFX> currentFilters = new List<FilterFX>();
-            float total = 0;
-
-            foreach (FilterFX j in possibleFilters)
-            {
-                if (j.weight > 0)
+                if (timeModule)
                 {
-
-                    currentFilters.Add(j);
-                    total += j.weight;
-
-                }
-            }
-
-            if (currentFilters.Count == 0)
-            {
-
-                filterSaturation = i.filterSaturation;
-                filterValue = i.filterValue;
-                filterColor = i.filterColor;
-                sunFilter = i.sunFilter;
-                cloudFilter = i.cloudFilter;
-                return;
-
-            }
-
-            i.weight = Mathf.Clamp01(1 - total);
-
-            if (i.weight > 0)
-            {
-                currentFilters.Add(i);
-                total += i.weight;
-            }
-
-
-            filterSaturation = currentFilters[0].filterSaturation;
-            filterValue = currentFilters[0].filterValue;
-            filterColor = currentFilters[0].filterColor;
-            sunFilter = currentFilters[0].sunFilter;
-            cloudFilter = currentFilters[0].cloudFilter;
-
-            foreach (FilterFX j in currentFilters)
-            {
-
-                float weight = j.weight / total;
-
-                filterSaturation = Mathf.Lerp(filterSaturation, j.filterSaturation, weight);
-                filterValue = Mathf.Lerp(filterValue, j.filterValue, weight);
-                filterColor = Color.Lerp(filterColor, j.filterColor, weight);
-                sunFilter = Color.Lerp(sunFilter, j.sunFilter, weight);
-                cloudFilter = Color.Lerp(cloudFilter, j.cloudFilter, weight);
-
-            }
-        }
-
-        #endregion
-
-        #region TIME
-
-        void SetupTime()
-        {
-            if (perennialProfile.resetTicksOnStart && !overrideTime)
-                currentTicks = perennialProfile.startTicks;
-
-
-            if (perennialProfile.realisticYear && !overrideDate)
-                perennialProfile.daysPerYear = perennialProfile.RealisticDaysPerYear();
-
-            SetupTimeEvents();
-        }
-
-        public float ModifiedDayPercentage()
-        {
-
-            return usePhysicalSunHeight ? perennialProfile.sunMovementCurve.Evaluate(dayPercentage) / 360 : dayPercentage;
-
-        }
-
-        /// <summary>
-        /// Constrains the time to fit within the length parameters set on the perennial profile.
-        /// </summary> 
-        private void ConstrainTime()
-        {
-            if (timeControl == TimeControl.native)
-            {
-                if (calendar.currentTicks > perennialProfile.ticksPerDay)
-                {
-                    calendar.currentTicks -= perennialProfile.ticksPerDay;
-                    ChangeDay(1);
-                    events.timeToCheckFor = 0.25f;
-                    events.RaiseOnDayChange();
+                    dayPercent = timeModule.currentTime;
                 }
 
-                if (calendar.currentTicks < 0)
+                return dayPercent;
+            }
+        }
+        public float yearPercentage
+        {
+            get
+            {
+                float yearPercentage = 0.5f;
+
+                if (timeModule)
                 {
-                    calendar.currentTicks += perennialProfile.ticksPerDay;
-                    ChangeDay(-1);
-                    events.RaiseOnDayChange();
+                    yearPercentage = timeModule.yearPercentage;
                 }
 
+                return yearPercentage;
             }
-            else
+        }
+        public float modifiedDayPercentage
+        {
+            get
             {
-                if (perennialProfile.currentTicks > perennialProfile.ticksPerDay)
+                float dayPercent = sunAngle;
+
+                if (timeModule)
                 {
-                    perennialProfile.currentTicks -= perennialProfile.ticksPerDay;
-                    ChangeDay(1);
-                    events.timeToCheckFor = 0.25f;
-                    events.RaiseOnDayChange();
+                    dayPercent = timeModule.modifiedDayPercentage;
                 }
 
-                if (perennialProfile.currentTicks < 0)
-                {
-                    perennialProfile.currentTicks += perennialProfile.ticksPerDay;
-                    ChangeDay(-1);
-                    events.RaiseOnDayChange();
-                }
-
+                return dayPercent;
             }
         }
 
-        private void ChangeDay(int change)
-        {
-
-            if (overrideDate)
-            {
-                overrideDate.ChangeDay(change);
-                return;
-            }
-
-            if (timeControl == TimeControl.native)
-            {
-                calendar.currentDay += change;
-
-                if (calendar.currentDay >= perennialProfile.daysPerYear)
-                {
-                    calendar.currentDay -= perennialProfile.daysPerYear;
-                    calendar.currentYear++;
-                    events.RaiseOnYearChange();
-                }
-
-                if (calendar.currentDay < 0)
-                {
-                    calendar.currentDay += perennialProfile.daysPerYear;
-                    calendar.currentYear--;
-                    events.RaiseOnYearChange();
-                }
-
-            }
-            else
-            {
-                perennialProfile.currentDay += change;
-
-                if (perennialProfile.currentDay >= perennialProfile.daysPerYear)
-                {
-                    perennialProfile.currentDay -= perennialProfile.daysPerYear;
-                    perennialProfile.currentYear++;
-                    events.RaiseOnYearChange();
-                }
-
-                if (perennialProfile.currentDay < 0)
-                {
-                    perennialProfile.currentDay += perennialProfile.daysPerYear;
-                    perennialProfile.currentYear--;
-                    events.RaiseOnYearChange();
-                }
-            }
-
-        }
-
-        /// <summary>
-        /// Returns the current time in percentage (0 - 1).
-        /// </summary> 
-        public float GetCurrentDayPercentage()
-        {
-
-            if (overrideTime)
-                return overrideTime.dayPercentage;
-
-
-            return currentTicks / perennialProfile.ticksPerDay;
-
-
-        }
-        /// <summary>
-        /// Returns the current day percentage after being modified by a curve. Used to set the sun rotation and colors .
-        /// </summary> 
-        public float GetModifiedDayPercentage()
-        {
-
-
-            return usePhysicalSunHeight ? perennialProfile.sunMovementCurve.Evaluate(dayPercentage) / 360 : dayPercentage;
-
-
-        }
-
-        public int GetDaysPerYear()
-        {
-            if (overrideDate)
-                return overrideDate.DaysPerYear();
-
-            return perennialProfile.daysPerYear;
-        }
-
-        /// <summary>
-        /// Returns the current year percentage (0 - 1).
-        /// </summary> 
-        public float GetCurrentYearPercentage()
-        {
-
-            if (overrideDate)
-                return overrideDate.GetCurrentYearPercentage();
-
-            float dat = DayAndTime();
-            return dat / perennialProfile.daysPerYear;
-        }
-
-        /// <summary>
-        /// Returns the current year percentage (0 - 1) after a number of ticks has passed.
-        /// </summary> 
-        public float GetCurrentYearPercentage(float inTicks)
-        {
-            if (overrideDate)
-                return overrideDate.GetCurrentYearPercentage(inTicks);
-
-            float dat = DayAndTime() + (inTicks / perennialProfile.ticksPerDay);
-            return dat / perennialProfile.daysPerYear;
-        }
-
-        /// <summary>
-        /// Gets the current day plus the current day percentage (0-1). 
-        /// </summary> 
-        public float DayAndTime()
-        {
-            if (overrideDate)
-                return overrideDate.DayAndTime();
-
-            if (timeControl == TimeControl.native)
-                return calendar.currentDay + (calendar.currentTicks / perennialProfile.ticksPerDay);
-            else
-                return perennialProfile.currentDay + (perennialProfile.currentTicks / perennialProfile.ticksPerDay);
-
-        }
-
-
-        /// <summary>
-        /// Manages the movement of time in the scene.
-        /// </summary> 
-        public void ManageTime()
-        {
-
-            dayPercentage = GetCurrentDayPercentage();
-            yearPercentage = GetCurrentYearPercentage();
-
-            if (Application.isPlaying && !perennialProfile.pauseTime)
-                currentTicks += perennialProfile.ModifiedTickSpeed() * Time.deltaTime;
-
-            if (events.useEvents)
-                ManageTimeEvents();
-
-            ConstrainTime();
-
-        }
-
-        private void ManageTimeEvents()
-        {
-
-            if (dayPercentage > events.timeToCheckFor)
-            {
-                if (dayPercentage > perennialProfile.nightBlock.start)
-                {
-                    events.RaiseOnNight();
-                    events.timeToCheckFor = perennialProfile.dawnBlock.start;
-                }
-                else if (dayPercentage > perennialProfile.twilightBlock.start)
-                {
-                    events.RaiseOnTwilight();
-                    events.timeToCheckFor = perennialProfile.nightBlock.start;
-                }
-                else if (dayPercentage > perennialProfile.eveningBlock.start)
-                {
-                    events.RaiseOnEvening();
-                    events.timeToCheckFor = perennialProfile.twilightBlock.start;
-                }
-                else if (dayPercentage > perennialProfile.afternoonBlock.start)
-                {
-                    events.RaiseOnAfternoon();
-                    events.timeToCheckFor = perennialProfile.eveningBlock.start;
-                }
-                else if (dayPercentage > perennialProfile.dayBlock.start)
-                {
-                    events.RaiseOnDay();
-                    events.timeToCheckFor = perennialProfile.afternoonBlock.start;
-                }
-                else if (dayPercentage > perennialProfile.morningBlock.start)
-                {
-                    events.RaiseOnMorning();
-                    events.timeToCheckFor = perennialProfile.dayBlock.start;
-                }
-                else
-                {
-                    events.RaiseOnDawn();
-                    events.timeToCheckFor = perennialProfile.morningBlock.start;
-                }
-            }
-
-            if (dayPercentage < events.timeToCheckFor - 0.25f) { SetupTimeEvents(); }
-
-            if (Mathf.FloorToInt(currentTicks) != events.currentTick)
-            {
-                events.currentTick = Mathf.FloorToInt(currentTicks);
-                events.RaiseOnTickPass();
-            }
-            if (Mathf.FloorToInt(dayPercentage * 24) != events.currentHour)
-            {
-                events.currentHour = Mathf.FloorToInt(dayPercentage * 24);
-                events.RaiseOnNewHour();
-            }
-
-
-
-        }
-
-        private void SetupTimeEvents()
-        {
-
-            float i = GetCurrentDayPercentage();
-
-            events.timeToCheckFor = perennialProfile.dawnBlock.start;
-            if (i > perennialProfile.dawnBlock.start)
-                events.timeToCheckFor = perennialProfile.morningBlock.start;
-            if (i > perennialProfile.morningBlock.start)
-                events.timeToCheckFor = perennialProfile.dayBlock.start;
-            if (i > perennialProfile.dayBlock.start)
-                events.timeToCheckFor = perennialProfile.afternoonBlock.start;
-            if (i > perennialProfile.afternoonBlock.start)
-                events.timeToCheckFor = perennialProfile.eveningBlock.start;
-            if (i > perennialProfile.eveningBlock.start)
-                events.timeToCheckFor = perennialProfile.twilightBlock.start;
-            if (i > perennialProfile.twilightBlock.start)
-                events.timeToCheckFor = perennialProfile.nightBlock.start;
-            if (i > perennialProfile.nightBlock.start)
-                events.timeToCheckFor = perennialProfile.dawnBlock.start;
-
-            events.currentTick = Mathf.FloorToInt(currentTicks);
-            events.currentHour = Mathf.FloorToInt(dayPercentage * 24);
-
-
-        }
-
-        /// <summary>
-        /// Skips the weather system forward by the ticksToSkip value.
-        /// </summary> 
-        public void SkipTime(float ticksToSkip)
-        {
-
-
-            currentTicks += ticksToSkip;
-
-            if (GetModule<CozyAmbienceManager>())
-                GetModule<CozyAmbienceManager>().SkipTicks(ticksToSkip);
-
-            foreach (CozyEcosystem i in ecosystems)
-            {
-                i.SkipTicks(ticksToSkip);
-            }
-
-            ResetVariables();
-
-        }
-
-        public void SkipTime(float ticksToSkip, int daysToSkip)
-        {
-
-
-            currentTicks += ticksToSkip;
-            currentDay += daysToSkip;
-
-            if (GetModule<CozyAmbienceManager>())
-                GetModule<CozyAmbienceManager>().SkipTicks(ticksToSkip + (weatherSphere.perennialProfile.ticksPerDay * daysToSkip));
-
-            foreach (CozyEcosystem i in weatherSphere.ecosystems)
-            {
-                i.SkipTicks(ticksToSkip + (weatherSphere.perennialProfile.ticksPerDay * daysToSkip));
-            }
-
-            weatherSphere.ResetVariables();
-
-        }
-
-        /// <summary>
-        /// Returns the title for the current month.
-        /// </summary> 
-        public string MonthTitle(float month)
-        {
-
-
-            if (perennialProfile.realisticYear)
-            {
-
-                GetCurrentMonth(out string monthName, out int monthDay, out float monthPercentage);
-                return monthName + " " + monthDay;
-
-            }
-            else
-            {
-
-                float j = Mathf.Floor(month * 12);
-                float monthLength = perennialProfile.daysPerYear / 12;
-                float monthTime = DayAndTime() - (j * monthLength);
-
-                PerennialProfile.DefaultYear monthName = (PerennialProfile.DefaultYear)j;
-                PerennialProfile.TimeDivisors monthTimeName = PerennialProfile.TimeDivisors.Mid;
-
-                if ((monthTime / monthLength) < 0.33f)
-                    monthTimeName = PerennialProfile.TimeDivisors.Early;
-                else if ((monthTime / monthLength) > 0.66f)
-                    monthTimeName = PerennialProfile.TimeDivisors.Late;
-                else
-                    monthTimeName = PerennialProfile.TimeDivisors.Mid;
-
-
-                return $"{monthTimeName} {monthName}";
-            }
-        }
-
-        public void GetCurrentMonth(out string monthName, out int monthDay, out float monthPercentage)
-        {
-
-            int i = currentDay;
-            int j = 0;
-
-            while (i > ((perennialProfile.useLeapYear && currentYear % 4 == 0) ? perennialProfile.leapYear[j].days : perennialProfile.standardYear[j].days))
-            {
-
-                i -= (perennialProfile.useLeapYear && currentYear % 4 == 0) ? perennialProfile.leapYear[j].days : perennialProfile.standardYear[j].days;
-
-                j++;
-
-                if (j >= ((perennialProfile.useLeapYear && currentYear % 4 == 0) ? perennialProfile.leapYear.Length : perennialProfile.standardYear.Length))
-                    break;
-
-            }
-
-            PerennialProfile.Month k = (perennialProfile.useLeapYear && currentYear % 4 == 0) ? perennialProfile.leapYear[j] : perennialProfile.standardYear[j];
-
-            monthName = k.name;
-            monthDay = i;
-            monthPercentage = k.days;
-
-
-        }
-
-
-        /// <summary>
-        /// Smoothly skips time.
-        /// </summary> 
-        public void TransitionTime(float ticksToSkip, float time)
-        {
-
-            StartCoroutine(TransitionTime(currentTicks, ticksToSkip, time));
-
-        }
-
-        IEnumerator TransitionTime(float startTicks, float ticksToSkip, float time)
-        {
-
-            transitioningTime = true;
-            float t = time;
-            float targetTime = (ticksToSkip / perennialProfile.ticksPerDay - Mathf.Floor(ticksToSkip / perennialProfile.ticksPerDay)) * perennialProfile.ticksPerDay;
-            float targetDay = Mathf.Floor(ticksToSkip / perennialProfile.ticksPerDay);
-            float transitionSpeed = ticksToSkip / time;
-
-            while (t > 0)
-            {
-
-                float div = 1 - (t / time);
-                yield return new WaitForEndOfFrame();
-
-                currentTicks += Time.deltaTime * transitionSpeed;
-
-                t -= Time.deltaTime;
-
-            }
-
-            transitioningTime = false;
-
-        }
-
-        #endregion
-
-        #region WEATHER
-
-        /// <summary>
-        /// Updates the visual weather by the properties of the array of current weather profiles.
-        /// </summary> 
-        void UpdateWeatherByWeight()
-        {
-
-            float k = 0;
-
-            foreach (WeightedWeather i in currentWeatherProfiles) k += i.weight;
-
-            if (k == 0)
-                k = 1;
-
-            altocumulus = 0;
-            borderEffect = 0;
-            border = 0;
-            borderVariation = 0;
-            chemtrails = 0;
-            cirrostratus = 0;
-            cirrus = 0;
-            cumulus = 0;
-            nimbus = 0;
-            nimbusHeight = 0;
-            nimbusVariation = 0;
-            fogDensity = 0;
-
-
-
-            foreach (WeightedWeather i in currentWeatherProfiles)
-            {
-                i.weight /= k;
-
-                WeatherProfile j = i.profile;
-
-                altocumulus += j.cloudSettings.altocumulusCoverage * i.weight;
-                borderEffect += j.cloudSettings.borderEffect * i.weight;
-                border += j.cloudSettings.borderHeight * i.weight;
-                borderVariation += j.cloudSettings.borderVariation * i.weight;
-                chemtrails += j.cloudSettings.chemtrailCoverage * i.weight;
-                cirrostratus += j.cloudSettings.cirrostratusCoverage * i.weight;
-                cirrus += j.cloudSettings.cirrusCoverage * i.weight;
-                cumulus += j.cloudSettings.cumulusCoverage * i.weight;
-                nimbus += j.cloudSettings.nimbusCoverage * i.weight;
-                nimbusHeight += j.cloudSettings.nimbusHeightEffect * i.weight;
-                nimbusVariation += j.cloudSettings.nimbusVariation * i.weight;
-                fogDensity += j.fogDensity * i.weight;
-
-                j.SetWeatherWeight(i.weight);
-
-            }
-        }
-
-        /// <summary>
-        /// Returns the current weather with the highest weight.
-        /// </summary> 
-        public WeatherProfile GetCurrentWeatherProfile()
-        {
-
-            WeatherProfile i = null;
-            float k = 0;
-
-            foreach (WeightedWeather j in currentWeatherProfiles) if (j.weight > k) { i = j.profile; k = j.weight; }
-
-            return i;
-
-        }
-
-        void ManageWeatherWeights()
-        {
-
-            float j = 0;
-
-            ecosystems.RemoveAll(x => x == null);
-
-            foreach (CozyEcosystem i in ecosystems)
-            {
-
-                if (i != this) j += i.weight;
-
-            }
-
-
-            weight = Mathf.Clamp01(1 - j);
-
-        }
-
-        void GlobalEcosystem()
-        {
-            currentWeatherProfiles.Clear();
-            CozyEcosystem ecosystem;
-            WeightedWeather weightedWeather;
-
-            for (int j = 0; j < ecosystems.Count; j++)
-            {
-                ecosystem = ecosystems[j];
-
-
-                if (ecosystem.weight > 0)
-                {
-                    for (int i = 0; i < ecosystem.weightedWeatherProfiles.Count; i++)
-                    {
-                        weightedWeather = ecosystem.weightedWeatherProfiles[i];
-
-                        if (weightedWeather.weight * ecosystem.weight == 0)
-                        {
-                            weightedWeather.profile.StopWeather();
-                            continue;
-                        }
-
-                        if (currentWeatherProfiles.Contains(weightedWeather))
-                        {
-                            for (int k = 0; k < currentWeatherProfiles.Count; k++)
-                            {
-                                if (currentWeatherProfiles[k] == weightedWeather)
-                                {
-                                    currentWeatherProfiles[k].weight += weightedWeather.weight * ecosystem.weight;
-                                    break;
-                                }
-                            }
-                            continue;
-                        }
-
-                        WeightedWeather l = weightedWeather;
-                        l.weight = weightedWeather.weight * ecosystem.weight;
-                        currentWeatherProfiles.Add(l);
-
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < ecosystem.weightedWeatherProfiles.Count; i++)
-                    {
-                        ecosystem.weightedWeatherProfiles[i].profile.StopWeather();
-                    }
-                }
-            }
-        }
-
-
-        #endregion
 
         #region MODULES
 
@@ -2179,28 +854,22 @@ namespace DistantLands.Cozy
         {
 
             moduleHolder = GetChild("Modules").gameObject;
+            modules = moduleHolder.GetComponents<CozyModule>().ToList();
 
-            if (!cozyMaterials)
-                cozyMaterials = GetModule<CozyMaterialManager>();
+            if (!interactionsModule)
+                interactionsModule = GetModule<CozyInteractionsModule>();
 
-            if (!VFX)
-                VFX = GetModule<VFXModule>();
+            if (!timeModule)
+                timeModule = GetModule<CozyTimeModule>();
 
+            if (!weatherModule)
+                weatherModule = GetModule<CozyWeatherModule>();
 
-            List<int> toRemove = new List<int>();
-            int j = 0;
+            modules.RemoveAll(x => x == null);
 
-            foreach (CozyModule i in modules)
-            {
-                if (i == null)
-                    toRemove.Add(j);
-
-                j++;
-            }
-
-            foreach (int k in toRemove)
-                modules.RemoveAt(k);
-
+#if UNITY_EDITOR
+            E_CozyWeather.windowNum = Mathf.Clamp(E_CozyWeather.windowNum, 0, modules.Count);
+#endif
 
         }
 
@@ -2208,22 +877,78 @@ namespace DistantLands.Cozy
         {
 
             if (GetModule(module))
+            {
+                Debug.LogWarning($"Cannot add {module.Name} because the current COZY instance already contains this module.");
                 return;
+            }
 
-            modules.Add((CozyModule)moduleHolder.AddComponent(module));
+            CozyModule newModule = (CozyModule)moduleHolder.AddComponent(module);
+            if (!newModule.CheckIfModuleCanBeAdded(out string warning))
+            {
+                Debug.LogWarning($"Cannot add {module.Name} due to a conflict with {warning}.");
+                DestroyImmediate(newModule);
+                return;
+            }
+
+            modules.Add(newModule);
+            ResetModules();
+
+        }
+
+        public void ResetModule(CozyModule module)
+        {
+            StartCoroutine(ResetModuleRoutine(module));
+        }
+
+        public IEnumerator ResetModuleRoutine(CozyModule module)
+        {
+
+            Type savedType = module.GetType();
+
+            if (!module.CheckIfModuleCanBeRemoved(out string warning))
+            {
+                Debug.LogWarning($"Module cannot be reset as it has dependencies on the weather sphere. Please remove the {warning} before resetting this module!");
+                yield break;
+            }
+            modules.Remove(module);
+            DestroyImmediate(module);
+            ResetModules();
+
+            yield return null;
+
+            CozyModule newModule = (CozyModule)moduleHolder.AddComponent(savedType);
+
+            modules.Add(newModule);
             ResetModules();
 
         }
 
         public void DeintitializeModule(CozyModule module)
         {
-
+            if (!module.CheckIfModuleCanBeRemoved(out string warning))
+            {
+                Debug.LogWarning($"Module cannot be removed as it has dependencies on the weather sphere. Please remove the {warning} before removing this module!");
+                return;
+            }
             modules.Remove(module);
             DestroyImmediate(module);
             ResetModules();
 
+
         }
 
+        public T GetModule<T>() where T : CozyModule
+        {
+            Type type = typeof(T);
+
+            return moduleHolder.GetComponent(type) ? moduleHolder.GetComponent(type) as T : null;
+        }
+
+        public CozyModule GetModule(Type type)
+        {
+
+            return moduleHolder.GetComponent(type) ? moduleHolder.GetComponent(type) as CozyModule : null;
+        }
         #endregion
 
         #region GENERIC
@@ -2232,8 +957,10 @@ namespace DistantLands.Cozy
         {
 
             foreach (Transform i in transform.GetComponentsInChildren<Transform>())
+            {
                 if (i.name == name)
                     return i;
+            }
 
             return null;
 
@@ -2244,7 +971,7 @@ namespace DistantLands.Cozy
         /// <summary>
         /// Get the current instance of Cozy in the scene. Returns null if no weather sphere is found.
         /// </summary> 
-        static public CozyWeather instance
+        public static CozyWeather instance
         {
 
             get
@@ -2260,44 +987,65 @@ namespace DistantLands.Cozy
 
         }
 
-        static CozyWeather cachedInstance;
+        private static CozyWeather cachedInstance;
 
-        public T GetModule<T>() where T : CozyModule
+        /// <summary>
+        /// Sets the colors of the star particle systems.
+        /// </summary> 
+        private void SetStarColors(Color color)
         {
 
-            Type type = typeof(T);
+            if (m_Stars.Count == 0)
+                return;
 
-            foreach (CozyModule j in modules)
-                if (j.GetType() == type)
-                    return j as T;
+            foreach (ParticleSystem i in m_Stars)
+            {
 
-            return null;
+                if (i == null)
+                    continue;
 
+                ParticleSystem.MainModule j = i.main;
+                j.startColor = color;
+
+            }
         }
 
-        public CozyModule GetModule(Type type)
+        /// <summary>
+        /// Sets the colors of the cloud particle systems.
+        /// </summary> 
+        private void SetCloudColors(Color color)
         {
+            if (m_CloudParticles.Count == 0)
+                return;
 
+            foreach (ParticleSystem i in m_CloudParticles)
+            {
+                if (i == null)
+                    continue;
 
-            foreach (CozyModule j in modules)
-                if (j.GetType() == type)
-                    return j;
+                ParticleSystem.MainModule j = i.main;
+                j.startColor = color;
 
-            return null;
+                ParticleSystem.TrailModule k = i.trails;
+                k.colorOverLifetime = color;
 
+            }
         }
+
 
         #endregion
 
     }
 
 
-    [System.Serializable]
+    [Serializable]
     public class MeridiemTime
     {
 
         public int hours;
         public int minutes;
+        public int seconds;
+        public int milliseconds;
 
         public MeridiemTime() { }
 
@@ -2306,51 +1054,46 @@ namespace DistantLands.Cozy
             hours = hour;
             minutes = minute;
         }
-
-        public static bool operator >(MeridiemTime a, MeridiemTime b)
+        public MeridiemTime(int hour, int minute, int second, int millisecond)
         {
-            if (a.hours > b.hours)
-                return true;
-            if (a.hours == b.hours && a.minutes > b.minutes)
-                return true;
-            return false;
+            hours = hour;
+            minutes = minute;
+            seconds = second;
+            milliseconds = millisecond;
         }
-        public static bool operator <(MeridiemTime a, MeridiemTime b)
+        public static implicit operator MeridiemTime(float floatValue)
         {
-            if (a.hours < b.hours)
-                return true;
-            if (a.hours == b.hours && a.minutes < b.minutes)
-                return true;
-            return false;
+            MeridiemTime time = new MeridiemTime();
+            time.milliseconds = Mathf.RoundToInt(floatValue * 86400000);
+            time.seconds = (time.milliseconds - (time.milliseconds % 1000)) / 1000;
+            time.minutes = (time.seconds - (time.seconds % 60)) / 60;
+            time.hours = (time.minutes - (time.minutes % 60)) / 60;
+            time.minutes -= time.hours * 60;
+            time.seconds -= (time.hours * 60 + time.minutes) * 60;
+            time.milliseconds -= ((time.hours * 60 + time.minutes) * 60 + time.seconds) * 1000;
+            return time;
         }
-
+        public static implicit operator float(MeridiemTime time)
+        {
+            return (time.hours * 3600000 + time.minutes * 60000 + time.seconds * 1000 + time.milliseconds) / 86400000f;
+        }
+        public static implicit operator DateTime(MeridiemTime time)
+        {
+            return new DateTime(0, 0, 0, time.hours, time.minutes, time.seconds, time.milliseconds);
+        }
+        public static implicit operator string(MeridiemTime time)
+        {
+            return $"{time.hours:D2}:{time.minutes:D2}";
+        }
         public new string ToString()
         {
-            return hours.ToString("D2") + ":" + minutes.ToString("D2");
+            return $"{hours:D2}:{minutes:D2}";
         }
-
-        public static float MeridiemTimeToDayPercent(int hours, int minutes)
+        public string FullString()
         {
-
-            return (float)(hours + (float)minutes / 60) / 24;
-
-        }
-        public static float MeridiemTimeToDayPercent(MeridiemTime time)
-        {
-
-            return (float)(time.hours + (float)time.minutes / 60) / 24;
-
+            return $"{hours:D2}:{minutes:D2}:{seconds:D2}:{milliseconds:D4}";
         }
 
-        public static void DayPercentToMeridiemTime(float dayPercent, ref MeridiemTime time)
-        {
-
-            time.minutes = Mathf.RoundToInt(dayPercent * 1440);
-            time.hours = (time.minutes - time.minutes % 60) / 60;
-            time.minutes -= time.hours * 60;
-
-
-        }
 
     }
 
@@ -2363,64 +1106,48 @@ namespace DistantLands.Cozy
     {
 
         public List<Type> mods;
+        public static List<E_CozyModule> editors = new List<E_CozyModule>();
 
-        public int windowNum;
-        protected static bool climate;
-        protected static bool satWindow;
-        protected static bool windWindow;
-        protected static bool thunderWindow;
-        protected static bool matProfileWindow;
-        protected static bool matOptionsWindow;
+        public static int windowNum;
+        protected static Texture settingsIcon;
         protected static bool modules;
+        protected static bool vfx;
         protected static bool options;
+        protected static int modulesPerRow = 4;
 
         public bool tooltips;
-
-        Color proCol = (Color)new Color32(50, 50, 50, 255);
-        Color unityCol = (Color)new Color32(194, 194, 194, 255);
         CozyWeather t;
-
-        Editor atmosEditor;
+        private Editor atmosEditor;
 
         void OnEnable()
         {
 
-            serializedObject.Update();
-
-            serializedObject.FindProperty("icon1").objectReferenceValue = Resources.Load<Texture>("Atmosphere");
-            serializedObject.FindProperty("icon2").objectReferenceValue = Resources.Load<Texture>("CozyCalendar");
-            serializedObject.FindProperty("icon3").objectReferenceValue = Resources.Load<Texture>("Weather Profile-01");
-            serializedObject.FindProperty("icon4").objectReferenceValue = Resources.Load<Texture>("MoreOptions");
+            settingsIcon = Resources.Load<Texture>("MoreOptions");
             t = (CozyWeather)target;
+            CacheEditors();
 
-            serializedObject.ApplyModifiedProperties();
+        }
 
+        private void CacheEditors()
+        {
+
+            editors.Clear();
+            t.ResetModules();
+
+            foreach (CozyModule module in t.modules)
+            {
+                editors.Add(CreateEditor(module) as E_CozyModule);
+            }
         }
 
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
 
-
             tooltips = EditorPrefs.GetBool("CZY_Tooltips", true);
 
             List<GUIContent> icons = new List<GUIContent>();
             Rect position = EditorGUILayout.GetControlRect(GUILayout.Height(0));
-
-            if (Screen.width > 1050)
-            {
-                icons.Add(new GUIContent("    Atmosphere", (Texture)serializedObject.FindProperty("icon1").objectReferenceValue, "Manage skydome, fog, and lighting settings."));
-                icons.Add(new GUIContent("    Time", (Texture)serializedObject.FindProperty("icon2").objectReferenceValue, "Setup time settings, calendars, and manage current settings."));
-                icons.Add(new GUIContent("    Ecosystem", (Texture)serializedObject.FindProperty("icon3").objectReferenceValue, "Manage weather, climate, and year settings."));
-                icons.Add(new GUIContent("    Settings \n   & Modules", (Texture)serializedObject.FindProperty("icon4").objectReferenceValue, "Adjust the functions of COZY to get the most out of your system."));
-            }
-            else
-            {
-                icons.Add(new GUIContent((Texture)serializedObject.FindProperty("icon1").objectReferenceValue, "Manage skydome, fog, and lighting settings."));
-                icons.Add(new GUIContent((Texture)serializedObject.FindProperty("icon2").objectReferenceValue, "Setup time settings, calendars, and manage current settings."));
-                icons.Add(new GUIContent((Texture)serializedObject.FindProperty("icon3").objectReferenceValue, "Manage weather, climate, and year settings."));
-                icons.Add(new GUIContent((Texture)serializedObject.FindProperty("icon4").objectReferenceValue, "Adjust the functions of COZY to get the most out of your system."));
-            }
 
 
             if (tooltips)
@@ -2432,755 +1159,76 @@ namespace DistantLands.Cozy
                     EditorPrefs.SetBool("CZY_Tooltips", !EditorPrefs.GetBool("CZY_Tooltips", true));
                 EditorGUILayout.Space();
 
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.HelpBox("Atmosphere tab controls skydome, fog, and lighting settings.", MessageType.Info);
-                EditorGUILayout.HelpBox("Setup time settings, calendars, and manage current settings.", MessageType.Info);
-                EditorGUILayout.HelpBox("Manage weather profiles, forecast and ecosystem.", MessageType.Info);
-                EditorGUILayout.HelpBox("Control options and add and remove modules.", MessageType.Info);
-                EditorGUILayout.EndHorizontal();
-
             }
 
+            if (t.modules.Count != editors.Count)
+                CacheEditors();
 
-            foreach (CozyModule module in t.modules)
+            for (int i = 0; i < t.modules.Count; i++)
             {
-                if (module != null)
+                if (editors[i] == null)
                 {
-
-                    GUIContent content = (CreateEditor(module) as E_CozyModule).GetGUIContent();
-                    if (Screen.width > 1050)
-                        icons.Add(content);
-                    else
-                        icons.Add(new GUIContent(content.image, content.tooltip));
+                    CacheEditors();
+                    return;
                 }
+                GUIContent content = editors[i].GetGUIContent();
+                if (Screen.width / modulesPerRow > 250)
+                    icons.Add(content);
+                else
+                    icons.Add(new GUIContent(content.image, content.tooltip));
+
+            }
+            if (Screen.width / modulesPerRow > 250)
+            {
+                icons.Add(new GUIContent("    Settings ", settingsIcon, "Adjust the functions of COZY to get the most out of your system."));
+            }
+            else
+            {
+                icons.Add(new GUIContent(settingsIcon, "Adjust the functions of COZY to get the most out of your system."));
             }
 
-            GUIStyle iconStyle = new GUIStyle(GUI.skin.GetStyle("Button"));
-            iconStyle.fixedHeight = 40;
-            iconStyle.fixedWidth = (position.width / 4) - 5;
-            iconStyle.margin = new RectOffset(5, 5, 5, 5);
-            iconStyle.fontStyle = FontStyle.Bold;
-
-            windowNum = serializedObject.FindProperty("window").intValue;
-            int j = GUILayout.SelectionGrid(windowNum, icons.ToArray(), 4, iconStyle);
+            GUIStyle iconStyle = new GUIStyle(GUI.skin.GetStyle("Button"))
+            {
+                fixedHeight = 40,
+                fixedWidth = (position.width / modulesPerRow) - 5,
+                margin = new RectOffset(5, 5, 5, 5),
+                fontStyle = FontStyle.Bold,
+            };
+            int j = GUILayout.SelectionGrid(windowNum, icons.ToArray(), modulesPerRow, iconStyle);
 
             if (j != windowNum)
             {
 
-                if (j == 3)
+                if (j == t.modules.Count)
                     mods = EditorUtilities.ResetModuleList();
 
                 windowNum = j;
 
             }
 
-            serializedObject.FindProperty("window").intValue = windowNum;
-
             serializedObject.ApplyModifiedProperties();
 
             EditorGUILayout.Space();
 
-            switch (windowNum)
-            {
-                case (0):
-                    Atmos();
-                    break;
-                case (1):
-                    Time();
-                    break;
-                case (2):
-                    Weather();
-                    break;
-                case (3):
-                    Settings();
-                    break;
-                default:
-                    CustomModule(t.modules[windowNum - 4]);
-                    break;
-
-            }
-
-
-            serializedObject.ApplyModifiedProperties();
-
-
-        }
-
-        #region Atmosphere
-
-
-        public void Atmos()
-        {
-
-            GUIStyle labelStyle = new GUIStyle(GUI.skin.GetStyle("Label"));
-            labelStyle.fontStyle = FontStyle.Bold;
-
-            if (t.overrideAtmosphere)
-            {
-                EditorGUILayout.HelpBox($"Atmosphere control is currently being overriden by {t.overrideAtmosphere.GetType().Name}", MessageType.Warning);
-                DrawNativeSettingsTab();
-                return;
-            }
-
-            serializedObject.FindProperty("atmosSettingsWindow").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("atmosSettingsWindow").boolValue,
-                new GUIContent("    Selection Settings"), EditorUtilities.FoldoutStyle());
-
-
-            if (serializedObject.FindProperty("atmosSettingsWindow").boolValue)
-            {
-                if (tooltips)
-                    EditorGUILayout.HelpBox("How should this weather system manage atmosphere settings? Native sets all settings locally to this system, Profile sets global settings on the atmosphere profile.", MessageType.Info);
-
-
-                if (serializedObject.FindProperty("atmosphereControl").enumValueIndex == (int)CozyWeather.AtmosphereSelection.profile)
-                {
-                    EditorGUI.indentLevel++;
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("atmosphereControl"));
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("atmosphereProfile"));
-                    if (serializedObject.hasModifiedProperties)
-                        atmosEditor = CreateEditor(serializedObject.FindProperty("atmosphereProfile").objectReferenceValue);
-                }
-                else
-                {
-                    EditorGUI.indentLevel++;
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("atmosphereControl"));
-                }
-                EditorGUILayout.Space();
-
-                if (tooltips)
-                    EditorGUILayout.HelpBox("Set the shader model used for the sky, clouds, and fog here.", MessageType.Info);
-
-                EditorGUI.BeginChangeCheck();
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("skyStyle"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudStyle"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("fogStyle"));
-                serializedObject.ApplyModifiedProperties();
-
-                if (EditorGUI.EndChangeCheck())
-                    t.ResetQuality();
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            EditorGUI.indentLevel = 0;
-
-            if (serializedObject.FindProperty("atmosphereControl").enumValueIndex == (int)CozyWeather.AtmosphereSelection.native)
-            {
-
-                DrawNativeAtmosphere();
-
-            }
-            else if (serializedObject.FindProperty("atmosphereProfile").objectReferenceValue)
-                if (atmosEditor == null)
-                {
-                    atmosEditor = CreateEditor(serializedObject.FindProperty("atmosphereProfile").objectReferenceValue);
-                    (atmosEditor as E_AtmosphereProfile).OnInspectorGUIInline(t);
-                }
-                else
-                    (atmosEditor as E_AtmosphereProfile).OnInspectorGUIInline(t);
-            else
-            {
-                EditorGUILayout.HelpBox("Assign an atmosphere profile!", MessageType.Error);
-
-            }
-
-        }
-
-        public void DrawNativeAtmosphere()
-        {
-
-            serializedObject.FindProperty("win1").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("win1").boolValue,
-              new GUIContent("    Atmosphere & Lighting", "Skydome, fog, and lighting settings."), EditorUtilities.FoldoutStyle());
-
-            if (serializedObject.FindProperty("win1").boolValue)
-            {
-
-                DrawAtmosphereTab();
-
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            serializedObject.FindProperty("win2").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("win2").boolValue,
-                            new GUIContent("    Clouds", "Cloud color, generation, and variation settings."), EditorUtilities.FoldoutStyle());
-
-            if (serializedObject.FindProperty("win2").boolValue)
-            {
-
-                DrawCloudsTab();
-
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-
-            serializedObject.FindProperty("win3").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("win3").boolValue,
-                            new GUIContent("    Celestials & VFX", "Sun, moon, and light FX settings."), EditorUtilities.FoldoutStyle());
-
-            if (serializedObject.FindProperty("win3").boolValue)
-            {
-
-                DrawCelestialsTab();
-
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-        }
-
-        void DrawAtmosphereTab()
-        {
-
-            GUIStyle labelStyle = new GUIStyle(GUI.skin.GetStyle("Label"));
-            labelStyle.fontStyle = FontStyle.Bold;
-
-            AtmosphereProfile atmos = t.atmosphereProfile;
-
-            bool advancedSky = t.skyStyle == CozyWeather.SkyStyle.desktop;
-
-
-            EditorGUILayout.LabelField(" Skydome Settings", labelStyle);
-            EditorGUI.indentLevel++;
-
-            if (tooltips)
-                EditorGUILayout.HelpBox("In native mode, all values are set to static references that must be interpolated manually. For automatic interpolation based on the time of day, switch to profile mode.", MessageType.Info);
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("skyZenithColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("skyHorizonColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("gradientExponent"), false);
-
-            if (advancedSky)
-            {
-
-                EditorGUILayout.Space(5);
-                float min = serializedObject.FindProperty("atmosphereVariationMin").floatValue;
-                float max = serializedObject.FindProperty("atmosphereVariationMax").floatValue;
-
-                Rect position = EditorGUILayout.GetControlRect();
-                float startPos = position.width / 2.5f;
-                var titleRect = new Rect(position.x, position.y, 70, position.height);
-                EditorGUI.PrefixLabel(titleRect, new GUIContent("Atmosphere Variation"));
-                var label1Rect = new Rect();
-                var label2Rect = new Rect();
-                var sliderRect = new Rect();
-
-                if (position.width > 359)
-                {
-                    label1Rect = new Rect(startPos, position.y, 64, position.height);
-                    label2Rect = new Rect(position.width - 71, position.y, 64, position.height);
-                    sliderRect = new Rect(startPos + 56, position.y, (position.width - startPos) - 135, position.height);
-                    EditorGUI.MinMaxSlider(sliderRect, ref min, ref max, 0, 1);
-                }
-                else
-                {
-
-                    label1Rect = new Rect(position.width - 110, position.y, 50, position.height);
-                    label2Rect = new Rect(position.width - 72, position.y, 50, position.height);
-
-                }
-
-                min = EditorGUI.FloatField(label1Rect, (Mathf.Round(min * 100) / 100));
-                max = EditorGUI.FloatField(label2Rect, (Mathf.Round(max * 100) / 100));
-
-                if (min > max)
-                    min = max;
-
-                serializedObject.FindProperty("atmosphereVariationMin").floatValue = min;
-                serializedObject.FindProperty("atmosphereVariationMax").floatValue = max;
-
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("atmosphereBias"), false);
-            }
-
-            EditorGUILayout.Space(5);
-            EditorGUI.indentLevel--;
-            EditorGUILayout.LabelField(" Fog Settings", labelStyle);
-            EditorGUI.indentLevel++;
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogColor1"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogColor2"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogColor3"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogColor4"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogColor5"), false);
-            EditorGUILayout.Space(5);
-
-            float fogStart1 = serializedObject.FindProperty("fogStart1").floatValue;
-            float fogStart2 = serializedObject.FindProperty("fogStart2").floatValue;
-            float fogStart3 = serializedObject.FindProperty("fogStart3").floatValue;
-            float fogStart4 = serializedObject.FindProperty("fogStart4").floatValue;
-
-            fogStart1 = Mathf.Clamp(EditorGUILayout.Slider("Fog Start 2", fogStart1, 0, 50), 0, fogStart2 - 0.1f);
-            fogStart2 = Mathf.Clamp(EditorGUILayout.Slider("Fog Start 3", fogStart2, 0, 50), fogStart1 + 0.1f, fogStart3 - 0.1f);
-            fogStart3 = Mathf.Clamp(EditorGUILayout.Slider("Fog Start 4", fogStart3, 0, 50), fogStart2 + 0.1f, fogStart4 - 0.1f);
-            fogStart4 = Mathf.Clamp(EditorGUILayout.Slider("Fog Start 5", fogStart4, 0, 50), fogStart3 + 0.1f, 50);
-
-            serializedObject.FindProperty("fogStart1").floatValue = fogStart1;
-            serializedObject.FindProperty("fogStart2").floatValue = fogStart2;
-            serializedObject.FindProperty("fogStart3").floatValue = fogStart3;
-            serializedObject.FindProperty("fogStart4").floatValue = fogStart4;
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogHeight"), false);
-
-            EditorGUILayout.Space(5);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogDensityMultiplier"), false);
-
-
-            EditorGUILayout.Space(5);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogFlareColor"), new GUIContent("Light Flare Color",
-                "Sets the color of the fog for a false \"light flare\" around the main sun directional light."), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogLightFlareIntensity"), new GUIContent("Light Flare Intensity",
-                "Modulates the brightness of the light flare."), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogLightFlareFalloff"), new GUIContent("Light Flare Falloff",
-                "Sets the falloff speed for the light flare."), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("fogLightFlareSquish"), new GUIContent("Light Flare Squish",
-                "Sets the height divisor for the fog flare. High values sit the flare closer to the horizon, small values extend the flare into the sky."), false);
-
-            EditorGUILayout.Space(5);
-            EditorGUI.indentLevel--;
-            EditorGUILayout.LabelField(" Lighting Settings", labelStyle);
-            EditorGUI.indentLevel++;
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunlightColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("moonlightColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightHorizonColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightZenithColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightMultiplier"), false);
-            EditorGUI.indentLevel--;
-
-
-        }
-
-        void DrawNativeSettingsTab()
-        {
-
-            serializedObject.FindProperty("atmosSettingsWindow").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("atmosSettingsWindow").boolValue,
-                new GUIContent("    Global Settings"), EditorUtilities.FoldoutStyle());
-
-            if (!serializedObject.FindProperty("atmosSettingsWindow").boolValue)
-                return;
-
-            Material cloudShader = t.cloudMesh.sharedMaterial;
-
-            if (tooltips)
-                EditorGUILayout.HelpBox("In native mode, all values are set to static references that must be interpolated manually. For automatic interpolation based on the time of day, switch to profile mode.", MessageType.Info);
-
-            GUIStyle labelStyle = new GUIStyle(GUI.skin.GetStyle("Label"));
-            labelStyle.fontStyle = FontStyle.Bold;
-
-            EditorGUILayout.LabelField(" Sun Settings", labelStyle);
-            EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunDirection"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunPitch"), false);
-            EditorGUI.indentLevel--;
-
-            EditorGUILayout.Space();
-
-            EditorGUILayout.LabelField(" Atmosphere Settings", labelStyle);
-            EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ambientLightMultiplier"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("useRainbow"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("rainbowPosition"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("rainbowWidth"), false);
-            EditorGUI.indentLevel--;
-
-            EditorGUILayout.Space();
-
-            EditorGUILayout.LabelField(" Cloud Settings", labelStyle);
-            EditorGUI.indentLevel++;
-            if (cloudShader.HasProperty("_WindSpeed"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudWindSpeed"), new GUIContent("Wind Speed", "The speed at which the cloud generation will progress."), false);
-            if (cloudShader.HasProperty("_ClippingThreshold"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("clippingThreshold"), new GUIContent("Clipping Threshold", "The alpha that the clouds will clip to full alpha at. Default is 0.5"), false);
-            if (cloudShader.HasProperty("_MainCloudScale"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudMainScale"), new GUIContent("Main Scale", "The scale of the main perlin noise for the cumulus cloud type."), false);
-            if (cloudShader.HasProperty("_DetailScale"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudDetailScale"), new GUIContent("Detail Scale", "The scale of the secondary voronoi noise functions for the cumulus cloud type."), false);
-            if (cloudShader.HasProperty("_DetailAmount"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudDetailAmount"), new GUIContent("Detail Amount", "The multiplier for the secondary voronoi noise functions for the cumulus cloud type. Lower values give more cohesive cloud types."), false);
-            EditorGUILayout.Space(10);
-            if (cloudShader.HasProperty("_AltocumulusScale"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("acScale"), new GUIContent("Altocumulus Scale"), false);
-            if (cloudShader.HasProperty("_CirrostratusMoveSpeed"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cirroMoveSpeed"), new GUIContent("Cirrostratus Movement Speed"), false);
-            if (cloudShader.HasProperty("_CirrusMoveSpeed"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cirrusMoveSpeed"), new GUIContent("Cirrus Movement Speed"), false);
-            if (cloudShader.HasProperty("_ChemtrailsMoveSpeed"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("chemtrailsMoveSpeed"), new GUIContent("Chemtrails Movement Speed"), false);
-
-
-            if (cloudShader.HasProperty("_CloudTextureColor"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudTextureColor"), new GUIContent("Texture Color Multiplier"), false);
-            if (cloudShader.HasProperty("_CloudTexture"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudTexture"), new GUIContent("Cloud Texture"), false);
-            if (cloudShader.HasProperty("_TexturePanDirection"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("texturePanDirection"), new GUIContent("Cloud Texture Pan Direction"), false);
-            if (cloudShader.HasProperty("_TextureAmount"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("textureAmount"), new GUIContent("Texture Amount"), false);
-            if (cloudShader.HasProperty("_CloudCohesion"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudCohesion"), new GUIContent("Cloud Cohesion"), false);
-            if (cloudShader.HasProperty("_Spherize"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("spherize"), new GUIContent("Sphere Distortion"), false);
-            if (cloudShader.HasProperty("_ShadowingDistance"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("shadowDistance"), new GUIContent("Shadow Distance"), false);
-            if (cloudShader.HasProperty("_CloudThickness"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudThickness"), new GUIContent("Cloud Thickness"), false);
-
-            EditorGUI.indentLevel--;
-
-        }
-
-        void DrawCloudsTab()
-        {
-
-            Material cloudShader = t.cloudMesh.sharedMaterial;
-
-            if (tooltips)
-                EditorGUILayout.HelpBox("In native mode, all values are set to static references that must be interpolated manually. For automatic interpolation based on the time of day, switch to profile mode.", MessageType.Info);
-
-
-            GUIStyle labelStyle = new GUIStyle(GUI.skin.GetStyle("Label"));
-            labelStyle.fontStyle = FontStyle.Bold;
-
-            EditorGUILayout.LabelField(" Color Settings", labelStyle);
-            EditorGUI.indentLevel++;
-
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudColor"), new GUIContent("Cloud Color", "The main color of the unlit clouds."), false);
-            if (cloudShader.HasProperty("_AltoCloudColor"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("highAltitudeCloudColor"), new GUIContent("High Altitude Color", "The main color multiplier of the high altitude clouds. The cloud types affected are the cirrostratus and the altocumulus types."), false);
-            EditorGUILayout.Space(5);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudHighlightColor"), new GUIContent("Sun Highlight Color", "The color multiplier for the clouds in a \"dot\" around the sun."), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudSunHighlightFalloff"), new GUIContent("Sun Highlight Falloff", "The falloff for the \"dot\" around the sun."), false);
-            EditorGUILayout.Space(5);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudMoonColor"), new GUIContent("Moon Highlight Color", "The color multiplier for the clouds in a \"dot\" around the moon."), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudMoonHighlightFalloff"), new GUIContent("Moon Highlight Falloff", "The falloff for the \"dot\" around the moon."), false);
-
-
-            EditorGUI.indentLevel--;
-            EditorGUILayout.Space(10);
-            EditorGUILayout.LabelField(" Generation Settings", labelStyle);
-            EditorGUI.indentLevel++;
-            if (cloudShader.HasProperty("_WindSpeed"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudWindSpeed"), new GUIContent("Wind Speed", "The speed at which the cloud generation will progress."), false);
-            if (cloudShader.HasProperty("_ClippingThreshold"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("clippingThreshold"), new GUIContent("Clipping Threshold", "The alpha that the clouds will clip to full alpha at. Default is 0.5"), false);
-            if (cloudShader.HasProperty("_MainCloudScale"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudMainScale"), new GUIContent("Main Scale", "The scale of the main perlin noise for the cumulus cloud type."), false);
-            if (cloudShader.HasProperty("_DetailScale"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudDetailScale"), new GUIContent("Detail Scale", "The scale of the secondary voronoi noise functions for the cumulus cloud type."), false);
-            if (cloudShader.HasProperty("_DetailAmount"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudDetailAmount"), new GUIContent("Detail Amount", "The multiplier for the secondary voronoi noise functions for the cumulus cloud type. Lower values give more cohesive cloud types."), false);
-            EditorGUILayout.Space(10);
-            if (cloudShader.HasProperty("_AltocumulusScale"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("acScale"), new GUIContent("Altocumulus Scale"), false);
-            if (cloudShader.HasProperty("_CirrostratusMoveSpeed"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cirroMoveSpeed"), new GUIContent("Cirrostratus Movement Speed"), false);
-            if (cloudShader.HasProperty("_CirrusMoveSpeed"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cirrusMoveSpeed"), new GUIContent("Cirrus Movement Speed"), false);
-            if (cloudShader.HasProperty("_ChemtrailsMoveSpeed"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("chemtrailsMoveSpeed"), new GUIContent("Chemtrails Movement Speed"), false);
-
-
-            if (cloudShader.HasProperty("_CloudTextureColor"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudTextureColor"), new GUIContent("Texture Color Multiplier"), false);
-            if (cloudShader.HasProperty("_CloudTexture"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudTexture"), new GUIContent("Cloud Texture"), false);
-            if (cloudShader.HasProperty("_TexturePanDirection"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("texturePanDirection"), new GUIContent("Cloud Texture Pan Direction"), false);
-            if (cloudShader.HasProperty("_TextureAmount"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("textureAmount"), new GUIContent("Texture Amount"), false);
-            if (cloudShader.HasProperty("_CloudCohesion"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudCohesion"), new GUIContent("Cloud Cohesion"), false);
-            if (cloudShader.HasProperty("_Spherize"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("spherize"), new GUIContent("Sphere Distortion"), false);
-            if (cloudShader.HasProperty("_ShadowingDistance"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("shadowDistance"), new GUIContent("Shadow Distance"), false);
-            if (cloudShader.HasProperty("_CloudThickness"))
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudThickness"), new GUIContent("Cloud Thickness"), false);
-
-            EditorGUI.indentLevel--;
-
-
-        }
-
-        void DrawCelestialsTab()
-        {
-
-            if (tooltips)
-                EditorGUILayout.HelpBox("In native mode, all values are set to static references that must be interpolated manually. For automatic interpolation based on the time of day, switch to profile mode.", MessageType.Info);
-
-
-            bool advancedSky = t.skyStyle == CozyWeather.SkyStyle.desktop;
-
-            GUIStyle labelStyle = new GUIStyle(GUI.skin.GetStyle("Label"));
-            labelStyle.fontStyle = FontStyle.Bold;
-
-            EditorGUILayout.LabelField(" Sun Settings", labelStyle);
-            EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunColor"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunSize"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunDirection"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunPitch"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunFalloff"), new GUIContent("Sun Halo Falloff"), false);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("sunFlareColor"), new GUIContent("Sun Halo Color"), false);
-            EditorGUI.indentLevel--;
-
-            EditorGUILayout.Space(16);
-
-            if (advancedSky)
-                if (t.GetModule<CozySatelliteManager>())
-                {
-                    EditorGUILayout.LabelField(" Moon Settings", labelStyle);
-                    EditorGUI.indentLevel++;
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("moonFalloff"), new GUIContent("Moon Halo Falloff"), false);
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("moonFlareColor"), new GUIContent("Moon Halo Color"), false);
-                    EditorGUI.indentLevel--;
-                }
-
-
-            EditorGUILayout.Space(15);
-            EditorGUILayout.LabelField(" VFX", labelStyle);
-            EditorGUI.indentLevel++;
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("starColor"), false);
-
-            if (advancedSky)
-            {
-                EditorGUILayout.Space(5);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxyIntensity"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxy1Color"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxy2Color"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("galaxy3Color"), false);
-                EditorGUILayout.Space(5);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("lightScatteringColor"), false);
-                EditorGUILayout.Space(5);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("useRainbow"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("rainbowPosition"), false);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("rainbowWidth"), false);
-            }
-            EditorGUI.indentLevel--;
-
-
-        }
-
-        #endregion
-
-        #region Time
-        public void Time()
-        {
-
-
-            if (t.overrideTime)
-            {
-                EditorGUILayout.HelpBox($"Time control is currently being overriden by {t.overrideTime.GetType().Name}", MessageType.Warning);
-                return;
-            }
-            bool timeControl = serializedObject.FindProperty("timeControl").enumValueIndex == (int)CozyWeather.TimeControl.profile;
-            SerializedProperty calendar = serializedObject.FindProperty("calendar");
-            PerennialProfile perennial = serializedObject.FindProperty("perennialProfile").objectReferenceValue as PerennialProfile;
-            E_PerennialProfile timeEditor = CreateEditor(serializedObject.FindProperty("perennialProfile").objectReferenceValue) as E_PerennialProfile;
-
-            serializedObject.FindProperty("atmosSettingsWindow").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("atmosSettingsWindow").boolValue,
-                new GUIContent("    Selection Settings"), EditorUtilities.FoldoutStyle());
-
-            if (serializedObject.FindProperty("atmosSettingsWindow").boolValue)
-            {
-
-                if (tooltips)
-                    EditorGUILayout.HelpBox("How should this weather system manage time settings? Native sets the time locally to this system, Profile mode sets global settings on the perennial profile.", MessageType.Info);
-
-                EditorGUI.indentLevel++;
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("timeControl"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("perennialProfile"));
-
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-
-            serializedObject.FindProperty("timeCurrentWindow").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("timeCurrentWindow").boolValue,
-                new GUIContent("    Current Settings"), EditorUtilities.FoldoutStyle());
-
-            if (serializedObject.FindProperty("timeCurrentWindow").boolValue)
-            {
-                EditorGUI.indentLevel++;
-                if (tooltips)
-                {
-                    EditorGUILayout.HelpBox("COZY uses a tick system to tell time instead of a minutes/hours system. By default, a day is set to 360 ticks long (one for every degree of rotation that the sun will make). Converting the ticks to a time of day is easy! Midnight is 0 ticks, 6:00 AM is 90, noon is 180, 6:00 PM is 270, and then the cycle restarts.", MessageType.Info);
-                    EditorGUILayout.HelpBox("You can also change the length of the year! The default profile uses 48 days in a year to create a shorter year to improve contrast.", MessageType.Info);
-                    EditorGUILayout.HelpBox("Don't like the proportions of the current time system? Not to worry! Check out the 2400 tick perennial profile for a more realistic year!", MessageType.Info);
-                }
-
-                if (timeControl)
-                {
-                    timeEditor.OnRuntimeMeasureGUI();
-                }
-                else
-                {
-                    EditorGUI.BeginChangeCheck();
-                    calendar.FindPropertyRelative("currentTicks").floatValue = EditorGUILayout.Slider("Current Ticks", calendar.FindPropertyRelative("currentTicks").floatValue, 0, perennial.ticksPerDay);
-                    if (EditorGUI.EndChangeCheck())
-                    {
-
-                        serializedObject.ApplyModifiedProperties();
-                        MeridiemTime i = new MeridiemTime();
-                        MeridiemTime.DayPercentToMeridiemTime(t.GetCurrentDayPercentage(), ref i);
-                        calendar.FindPropertyRelative("meridiemTime").FindPropertyRelative("hours").intValue = i.hours;
-                        calendar.FindPropertyRelative("meridiemTime").FindPropertyRelative("minutes").intValue = i.minutes;
-
-                    }
-
-                    EditorGUI.BeginChangeCheck();
-                    EditorGUILayout.PropertyField(calendar.FindPropertyRelative("meridiemTime"));
-                    if (EditorGUI.EndChangeCheck())
-                    {
-
-                        calendar.FindPropertyRelative("currentTicks").floatValue = t.perennialProfile.ticksPerDay * MeridiemTime.MeridiemTimeToDayPercent(
-                        calendar.FindPropertyRelative("meridiemTime").FindPropertyRelative("hours").intValue,
-                        calendar.FindPropertyRelative("meridiemTime").FindPropertyRelative("minutes").intValue);
-
-
-                    }
-                    calendar.FindPropertyRelative("currentDay").intValue = EditorGUILayout.IntSlider("Current Day", calendar.FindPropertyRelative("currentDay").intValue, 0, perennial.daysPerYear);
-                    calendar.FindPropertyRelative("currentYear").intValue = EditorGUILayout.IntField("Current Year", calendar.FindPropertyRelative("currentYear").intValue);
-
-                }
-                EditorGUI.indentLevel--;
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            bool lengthWindow = serializedObject.FindProperty("tickLengthWindow").boolValue;
-            bool movementWindow = serializedObject.FindProperty("tickMovementWindow").boolValue;
-            bool timeBlocksWindow = serializedObject.FindProperty("timeBlocksWindow").boolValue;
-            bool curveWindow = serializedObject.FindProperty("curveWindow").boolValue;
-
-            timeEditor.OnStaticMeasureGUI(EditorUtilities.FoldoutStyle(), ref lengthWindow, ref movementWindow, ref timeBlocksWindow, ref curveWindow);
-
-
-            serializedObject.FindProperty("tickLengthWindow").boolValue = lengthWindow;
-            serializedObject.FindProperty("tickMovementWindow").boolValue = movementWindow;
-            serializedObject.FindProperty("timeBlocksWindow").boolValue = timeBlocksWindow;
-            serializedObject.FindProperty("curveWindow").boolValue = curveWindow;
-
-
-        }
-
-        #endregion
-
-        #region Weather
-
-        public void Weather()
-        {
-
-            if (t.overrideWeather)
-            {
-                EditorGUILayout.HelpBox($"Weather property control is currently being overriden by {t.overrideWeather.GetType().Name}", MessageType.Warning);
-                return;
-            }
-            serializedObject.FindProperty("atmosSettingsWindow").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("atmosSettingsWindow").boolValue,
-                new GUIContent("    Selection Settings"), EditorUtilities.FoldoutStyle());
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            bool useSingle = (CozyEcosystem.EcosystemStyle)serializedObject.FindProperty("weatherSelectionMode").enumValueIndex == CozyEcosystem.EcosystemStyle.manual;
-            serializedObject.ApplyModifiedProperties();
-
-            if (serializedObject.FindProperty("atmosSettingsWindow").boolValue)
-            {
-                EditorGUI.BeginChangeCheck();
-                EditorGUI.indentLevel++;
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("weatherSelectionMode"));
-
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("currentWeather"), new GUIContent("Global Weather"));
-                if (t.GetCurrentWeatherProfile())
-                    EditorGUILayout.LabelField(new GUIContent($"Current Weather is {t.GetCurrentWeatherProfile().name}"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("weatherTransitionTime"));
-
-
-                if (serializedObject.hasModifiedProperties)
-                {
-
-                    serializedObject.ApplyModifiedProperties();
-                    t.CalculateFilterColors();
-
-                }
-
-                EditorGUI.indentLevel--;
-
-            }
-            if (useSingle)
-            {
-
-                serializedObject.FindProperty("currentWeatherWindow").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("currentWeatherWindow").boolValue,
-                    new GUIContent("    Profile Settings"), EditorUtilities.FoldoutStyle());
-
-                EditorGUILayout.EndFoldoutHeaderGroup();
-
-                if (serializedObject.FindProperty("currentWeatherWindow").boolValue)
-                {
-
-                    EditorGUI.indentLevel++;
-                    (CreateEditor(serializedObject.FindProperty("currentWeather").objectReferenceValue) as E_WeatherProfile).DisplayInCozyWindow(t);
-                    EditorGUI.indentLevel--;
-
-                }
-
-            }
+            if (windowNum == t.modules.Count)
+                Settings();
             else
             {
 
-                serializedObject.FindProperty("forecastWindow").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("forecastWindow").boolValue,
-                    new GUIContent("    Forecasting Behaviors"), EditorUtilities.FoldoutStyle());
-
-                EditorGUILayout.EndFoldoutHeaderGroup();
-
-                if (serializedObject.FindProperty("forecastWindow").boolValue)
-                {
-
-                    EditorGUI.indentLevel++;
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("forecastProfile"));
-                    EditorGUILayout.Space();
-                    EditorGUI.indentLevel++;
-                    if (serializedObject.FindProperty("forecastProfile").objectReferenceValue)
-                        CreateEditor(serializedObject.FindProperty("forecastProfile").objectReferenceValue).OnInspectorGUI();
-                    EditorGUI.indentLevel--;
-                    EditorGUILayout.Space();
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("weatherTransitionTime"));
-                    EditorGUI.indentLevel--;
-
-                }
-
-                climate = EditorGUILayout.BeginFoldoutHeaderGroup(climate, new GUIContent("    Climate Settings"), EditorUtilities.FoldoutStyle());
-
-                EditorGUILayout.EndFoldoutHeaderGroup();
-
-                if (climate)
-                {
-
-                    EditorGUI.indentLevel++;
-                    EditorGUILayout.PropertyField(serializedObject.FindProperty("climateProfile"));
-                    EditorGUILayout.Space();
-                    EditorGUI.indentLevel++;
-                    CreateEditor(serializedObject.FindProperty("climateProfile").objectReferenceValue).OnInspectorGUI();
-                    EditorGUI.indentLevel--;
-                    EditorGUI.indentLevel--;
-
-                }
-
-
-
+                CustomModule(windowNum);
             }
-        }
 
-        #endregion
+            serializedObject.ApplyModifiedProperties();
+
+        }
 
         public void Settings()
         {
 
             if (tooltips)
-                EditorGUILayout.HelpBox("Add modules using this foldout! Use the reset module list buttone to search for any scripts that derive from CozyModule and add them to the dropdown.", MessageType.Info, true);
+                EditorGUILayout.HelpBox("Add modules using this foldout!", MessageType.Info, true);
 
-            modules = EditorGUILayout.BeginFoldoutHeaderGroup(modules, "    Modules", EditorUtilities.FoldoutStyle());
+            modules = EditorGUILayout.BeginFoldoutHeaderGroup(modules, "    Modules", EditorUtilities.FoldoutStyle);
             EditorGUILayout.EndFoldoutHeaderGroup();
 
             if (modules)
@@ -3190,8 +1238,7 @@ namespace DistantLands.Cozy
 
 
 
-                if (mods == null)
-                    mods = EditorUtilities.ResetModuleList();
+                mods ??= EditorUtilities.ResetModuleList();
 
                 if (mods.Contains(typeof(CozyModule)))
                     mods.Remove(typeof(CozyModule));
@@ -3205,26 +1252,28 @@ namespace DistantLands.Cozy
                 if (mods.Contains(typeof(CozyDateOverride)))
                     mods.Remove(typeof(CozyDateOverride));
 
+                t.modules.RemoveAll(x => x == null);
+
                 foreach (CozyModule a in t.modules)
                     if (mods.Contains(a.GetType()))
                         mods.Remove(a.GetType());
 
-
+                EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Button("Add New Module"))
                 {
-
                     ModulesSearchProvider provider = ScriptableObject.CreateInstance<ModulesSearchProvider>();
                     provider.modules = mods;
                     provider.weather = t;
                     SearchWindow.Open(new SearchWindowContext(GUIUtility.GUIToScreenPoint(Event.current.mousePosition)), provider);
-
                 }
-
-                if (GUILayout.Button("Reset Module List"))
+                if (GUILayout.Button("Add All Modules"))
                 {
-                    EditorUtilities.ResetModuleList();
-
+                    foreach (Type type in mods)
+                    {
+                        t.InitializeModule(type);
+                    }
                 }
+                EditorGUILayout.EndHorizontal();
 
                 EditorGUI.indentLevel++;
 
@@ -3232,17 +1281,15 @@ namespace DistantLands.Cozy
 
                 EditorGUILayout.Space();
 
-                foreach (CozyModule i in t.modules)
+                for (int i = 0; i < editors.Count; i++)
                 {
-                    if (i == null)
-                        continue;
 
                     EditorGUILayout.BeginHorizontal();
 
-                    EditorGUILayout.PrefixLabel((CreateEditor(i) as E_CozyModule).GetGUIContent());
+                    EditorGUILayout.PrefixLabel(editors[i].GetGUIContent());
                     if (GUILayout.Button("Remove"))
                     {
-                        j = i;
+                        j = t.modules[i];
                         mods = EditorUtilities.ResetModuleList();
                     }
 
@@ -3250,7 +1297,8 @@ namespace DistantLands.Cozy
 
                 }
 
-                t.DeintitializeModule(j);
+                if (j != null)
+                    t.DeintitializeModule(j);
 
                 EditorGUI.indentLevel--;
 
@@ -3258,7 +1306,22 @@ namespace DistantLands.Cozy
                 EditorGUILayout.Space();
             }
 
-            options = EditorGUILayout.BeginFoldoutHeaderGroup(options, "    Options", EditorUtilities.FoldoutStyle());
+
+            vfx = EditorGUILayout.BeginFoldoutHeaderGroup(vfx, "    VFX", EditorUtilities.FoldoutStyle);
+            EditorGUILayout.EndFoldoutHeaderGroup();
+
+            if (vfx)
+            {
+
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_Stars"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_CloudParticles"));
+                EditorGUI.indentLevel--;
+
+            }
+
+
+            options = EditorGUILayout.BeginFoldoutHeaderGroup(options, "    Options", EditorUtilities.FoldoutStyle);
             EditorGUILayout.EndFoldoutHeaderGroup();
 
             if (options)
@@ -3277,17 +1340,16 @@ namespace DistantLands.Cozy
                     EditorGUILayout.PropertyField(serializedObject.FindProperty("cozyCamera"));
 
                 EditorGUILayout.Space();
-
-                if (tooltips)
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("centerAroundCustomObject"));
+                if (t.centerAroundCustomObject)
                 {
-                    EditorGUILayout.HelpBox("Should the properties and colors of the system be set via a procedural profile that applies to all systems (default) or via a native direct setting that only applies to this system.", MessageType.Info, true);
-                    EditorGUILayout.Space();
+                    EditorGUI.indentLevel++;
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("customPivot"));
+                    EditorGUI.indentLevel--;
                 }
+                EditorGUILayout.Space();
 
                 EditorGUI.BeginChangeCheck();
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("atmosphereControl"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("timeControl"));
-                EditorGUILayout.Space();
 
                 if (tooltips)
                 {
@@ -3299,7 +1361,18 @@ namespace DistantLands.Cozy
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("cloudStyle"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("fogStyle"));
                 EditorGUILayout.Space();
+                if (tooltips)
+                {
+                    EditorGUILayout.HelpBox("Should the atmosphere colors reference the day percentage or the current time of day for coloring.", MessageType.Info, true);
+                    EditorGUILayout.Space();
+                }
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("usePhysicalSunHeight"));
+                if (tooltips)
+                {
+                    EditorGUILayout.HelpBox("Determines if the sun directional light and the transform that determines the direction of the sun disk in the sky be seperated.", MessageType.Info, true);
+                    EditorGUILayout.Space();
+                }
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("handleSceneLighting"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("separateSunLightAndTransform"));
                 if (t.separateSunLightAndTransform)
                 {
@@ -3308,9 +1381,37 @@ namespace DistantLands.Cozy
                     EditorGUILayout.PropertyField(serializedObject.FindProperty("sunTransform"));
                     EditorGUI.indentLevel--;
                 }
+                if (tooltips)
+                {
+                    EditorGUILayout.HelpBox("Should the weather sphere follow the editor camera while not in play mode?", MessageType.Info, true);
+                    EditorGUILayout.Space();
+                }
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("followEditorCamera"));
+                if (tooltips)
+                {
+                    EditorGUILayout.HelpBox("Suppresses the update function while not in play mode.", MessageType.Info, true);
+                    EditorGUILayout.Space();
+                }
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("freezeUpdateInEditMode"));
+                if (tooltips)
+                {
+                    EditorGUILayout.HelpBox("Disables the sun's directional light while below the horizon. Recommended for better performance.", MessageType.Info, true);
+                    EditorGUILayout.Space();
+                }
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("disableSunAtNight"));
+                if (tooltips)
+                {
+                    EditorGUILayout.HelpBox("Determines the tag that removes weather FX when added to a collider.", MessageType.Info, true);
+                    EditorGUILayout.Space();
+                }
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("cozyTriggerTag"));
+                EditorGUILayout.Space();
+                if (tooltips)
+                {
+                    EditorGUILayout.HelpBox("Sets the number of modules that can be displayed per row in the editor.", MessageType.Info, true);
+                    EditorGUILayout.Space();
+                }
+                modulesPerRow = EditorGUILayout.IntSlider("Modules Per Row", modulesPerRow, 1, 6);
 
                 EditorGUI.indentLevel--;
                 serializedObject.ApplyModifiedProperties();
@@ -3327,14 +1428,17 @@ namespace DistantLands.Cozy
 
         }
 
-        public void CustomModule(CozyModule module)
+        public void CustomModule(int moduleNumber)
         {
 
-            if (t.gameObject.scene == UnityEngine.SceneManagement.SceneManager.GetActiveScene())
+            CozyModule module = t.modules[moduleNumber];
+            editors[moduleNumber].DisplayToolar(true);
+
+            if (t.gameObject.scene.isLoaded)
                 if (module != null && module.isActiveAndEnabled)
                 {
                     EditorGUI.indentLevel++;
-                    (CreateEditor(module) as E_CozyModule).DisplayInCozyWindow();
+                    editors[moduleNumber].DisplayInCozyWindow();
                     EditorGUI.indentLevel--;
 
                 }
@@ -3344,6 +1448,8 @@ namespace DistantLands.Cozy
                 EditorGUILayout.HelpBox("Modules may only be edited in the scene!", MessageType.Info);
 
         }
+
+
     }
 
 

@@ -3,100 +3,54 @@ using System.Collections.Generic;
 using UnityEngine;
 using DistantLands.Cozy.Data;
 using System.Linq;
-using UnityEngine.Serialization;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace DistantLands.Cozy
 {
-    [ExecuteAlways]
-    public class CozyEcosystem : MonoBehaviour
+    [System.Serializable]
+    public class CozyEcosystem
     {
-
-
         public ForecastProfile forecastProfile;
-        public enum EcosystemStyle { manual, forecast }
+        public enum EcosystemStyle { manual, forecast, dailyForecast, automatic }
         [Tooltip("How should this ecosystem manage weather selection? " +
         "Manual allows you to manually select the weather profile that this ecosystem will use and the weights will adjust accordingly," +
             " Forecast allows for dynamically changing weather based on a predetermined forecast that runs entirely on it's own.")]
-        public EcosystemStyle weatherSelectionMode;
+        public EcosystemStyle weatherSelectionMode = EcosystemStyle.forecast;
 
-        public List<WeatherPattern> currentForecast;
+        public List<WeatherPattern> currentForecast = new List<WeatherPattern>();
 
         [System.Serializable]
         public class WeatherPattern
         {
             public WeatherProfile profile;
-            public float weatherProfileDuration;
-            public float startTicks;
-            public float endTicks;
+            public MeridiemTime startTime;
+            public MeridiemTime endTime;
+            public float duration { get { return startTime < endTime ? (endTime - startTime) : (endTime + 1 - startTime); } }
 
         }
         public float weatherTransitionTime = 15;
 
-        public float weatherTimer;
+        public float weatherTimer { get; private set; }
         public CozyWeather weatherSphere;
-        [Range(0, 1)]
-        public float weight;
+        public CozySystem system;
 
-
-        public ClimateProfile climateProfile;
-
-
-        [Tooltip("Adds an offset to the local temperature. Useful for adding biomes or climate change by location or elevation")]
-        [FormerlySerializedAs("localTempratureFilter")]
-        public float localTemperatureFilter;
-        [Tooltip("Adds an offset to the local precipitation. Useful for adding biomes or climate change by location or elevation")]
-        public float localPrecipitationFilter;
-
-        [FormerlySerializedAs("currentTemprature")]
-        public float currentTemperature;
-        [FormerlySerializedAs("currentTempratureCelsius")]
-        public float currentTemperatureCelsius;
-        public float currentPrecipitation;
 
         public WeatherProfile currentWeather;
         public WeatherProfile weatherChangeCheck;
+        [WeatherRelation]
+        public List<WeatherRelation> weightedWeatherProfiles = new List<WeatherRelation>();
 
-        [System.Serializable]
-        public class WeightedWeather
-        {
-            [Range(0, 1)] public float weight; public WeatherProfile profile; public bool transitioning = true;
-
-            public IEnumerator Transition(float value, float time)
-            {
-
-                transitioning = true;
-                float t = 0;
-                float start = weight;
-
-                while (t < time)
-                {
-
-                    float div = (t / time);
-                    yield return new WaitForEndOfFrame();
-
-                    weight = Mathf.Lerp(start, value, div);
-                    t += Time.deltaTime;
-
-                }
-
-                weight = value;
-                transitioning = false;
-
-            }
-
-        }
-        [WeightedWeather]
-        public List<WeightedWeather> weightedWeatherProfiles;
-
-        public WeightedWeather GetWeightedWeather(WeatherProfile profile, List<WeightedWeather> list)
+        public WeatherRelation GetWeatherRelation(WeatherProfile profile, List<WeatherRelation> list)
         {
 
 
-            WeightedWeather i = null;
+            WeatherRelation i = null;
 
-            foreach (WeightedWeather j in list) { if (j.profile == profile) { i = j; return i; } }
+            foreach (WeatherRelation j in list) { if (j.profile == profile) { i = j; return i; } }
 
-            WeightedWeather k = new WeightedWeather();
+            WeatherRelation k = new WeatherRelation();
             k.profile = profile;
             list.Add(k);
             i = list.Last();
@@ -105,25 +59,23 @@ namespace DistantLands.Cozy
 
         }
 
-        public void Awake()
+        public void SetupEcosystem()
         {
 
+            if (currentWeather == null)
+                currentWeather = (WeatherProfile)Resources.Load("Profiles/Weather Profiles/Partly Cloudy");
+            if (forecastProfile == null)
+                forecastProfile = (ForecastProfile)Resources.Load("Profiles/Forecast Profiles/Complex Forecast Profile");
 
-            if (!enabled)
-                return;
-
-            weatherSphere = CozyWeather.instance;
             weatherTimer = 0;
-
 
             if (Application.isPlaying)
             {
-                if (weatherSelectionMode == EcosystemStyle.forecast)
+                if (weatherSelectionMode == EcosystemStyle.forecast || weatherSelectionMode == EcosystemStyle.dailyForecast)
                 {
-
                     switch (forecastProfile.startWeatherWith)
                     {
-                        case (ForecastProfile.StartWeatherWith.initialProfile):
+                        case ForecastProfile.StartWeatherWith.initialProfile:
                             {
                                 if (forecastProfile.initialProfile == null)
                                 {
@@ -139,17 +91,17 @@ namespace DistantLands.Cozy
 
                                 break;
                             }
-                        case (ForecastProfile.StartWeatherWith.initialForecast):
+                        case ForecastProfile.StartWeatherWith.initialForecast:
                             {
                                 for (int i = 0; i < forecastProfile.initialForecast.Count; i++)
-                                    ForecastNewWeather(forecastProfile.initialForecast[i].profile, forecastProfile.initialForecast[i].weatherProfileDuration);
+                                    ForecastNewWeather(forecastProfile.initialForecast[i].profile, forecastProfile.initialForecast[i].duration);
 
                                 for (int i = forecastProfile.initialForecast.Count; i < forecastProfile.forecastLength; i++)
                                     ForecastNewWeather();
 
                                 break;
                             }
-                        case (ForecastProfile.StartWeatherWith.random):
+                        case ForecastProfile.StartWeatherWith.random:
                             {
                                 for (int i = 0; i < forecastProfile.forecastLength; i++)
                                     ForecastNewWeather();
@@ -163,7 +115,7 @@ namespace DistantLands.Cozy
                 else if (weatherSelectionMode == EcosystemStyle.manual)
                 {
 
-                    weightedWeatherProfiles = new List<WeightedWeather>() { new WeightedWeather() };
+                    weightedWeatherProfiles = new List<WeatherRelation>() { new WeatherRelation() };
                     weightedWeatherProfiles[0].profile = currentWeather;
                     weightedWeatherProfiles[0].weight = 1;
 
@@ -177,13 +129,17 @@ namespace DistantLands.Cozy
         public void SetupWeather()
         {
 
-            weightedWeatherProfiles = new List<WeightedWeather>();
+            weightedWeatherProfiles = new List<WeatherRelation>();
 
             WeatherProfile i = currentForecast[0].profile;
 
             currentWeather = i;
-            weatherTimer += currentForecast[0].weatherProfileDuration;
-            GetWeightedWeather(i, weightedWeatherProfiles).weight = 1;
+            if (weatherSelectionMode == EcosystemStyle.forecast)
+                weatherTimer += currentForecast[0].duration;
+            else if (weatherSelectionMode == EcosystemStyle.dailyForecast)
+                weatherTimer += 1 - weatherSphere.dayPercentage;
+
+            GetWeatherRelation(i, weightedWeatherProfiles).weight = 1;
 
             currentForecast.RemoveAt(0);
             ForecastNewWeather();
@@ -197,26 +153,23 @@ namespace DistantLands.Cozy
 
         }
 
-        public void Update()
+        public void UpdateEcosystem()
         {
-
             if (weatherSphere == null)
-                if (CozyWeather.instance)
-                    weatherSphere = CozyWeather.instance;
-                else
-                {
-                    Debug.LogError("Could not find an instance of COZY. Make sure that your scene is properly setup!");
-                    return;
-                }
-
+            {
+                Debug.LogWarning("No weather sphere found. Ecosystem is not running!");
+                return;
+            }
 
             if (Application.isPlaying)
             {
-                if (weatherSelectionMode == EcosystemStyle.forecast)
+                if (weatherSelectionMode == EcosystemStyle.forecast || weatherSelectionMode == EcosystemStyle.dailyForecast)
                 {
-                    ClampEcosystem();
 
-                    weatherTimer -= Time.deltaTime * weatherSphere.perennialProfile.ModifiedTickSpeed();
+                    if (weatherSphere.timeModule)
+                        weatherTimer -= Time.deltaTime * weatherSphere.timeModule.modifiedTimeSpeed;
+                    else
+                        weatherTimer -= Time.deltaTime;
 
                     while (weatherTimer <= 0)
                         SetNextWeather();
@@ -228,28 +181,26 @@ namespace DistantLands.Cozy
                     SetWeather(currentWeather, weatherTransitionTime);
                 }
 
-
                 weightedWeatherProfiles.RemoveAll(x => x.weight == 0 && x.transitioning == false);
-
             }
             else
             {
-                weightedWeatherProfiles = new List<WeightedWeather>() { new WeightedWeather() { profile = currentWeather, weight = 1 } };
+                if (weatherSelectionMode != EcosystemStyle.manual)
+                    weightedWeatherProfiles = new List<WeatherRelation>() { new WeatherRelation() { profile = currentWeather, weight = 1 } };
+
+                if (weatherChangeCheck != currentWeather)
+                {
+                    if (weatherChangeCheck)
+                        weatherChangeCheck.SetWeatherWeight(0);
+
+                    weatherChangeCheck = currentWeather;
+                }
             }
 
             if (weatherSelectionMode == EcosystemStyle.manual)
                 return;
 
-            if (climateProfile == null)
-            {
-                Debug.LogError($"Assign a climate profile on {this.name}!");
-                return;
-            }
-
-            currentTemperature = climateProfile.GetTemperature(false, weatherSphere) + localTemperatureFilter;
-            currentTemperatureCelsius = climateProfile.GetTemperature(true, weatherSphere) + localTemperatureFilter;
-            currentPrecipitation = climateProfile.GetHumidity(weatherSphere) + localPrecipitationFilter;
-
+            ClampEcosystem();
         }
 
         public void ClampEcosystem()
@@ -257,23 +208,32 @@ namespace DistantLands.Cozy
 
             float j = 0;
 
-            foreach (WeightedWeather i in weightedWeatherProfiles) j += i.weight;
+            foreach (WeatherRelation i in weightedWeatherProfiles) j += i.weight;
 
             if (j == 0)
                 j = 1;
 
-            foreach (WeightedWeather i in weightedWeatherProfiles) i.weight /= j;
+            foreach (WeatherRelation i in weightedWeatherProfiles) i.weight /= j;
 
+        }
+
+        public void SetupWeatherForecast()
+        {
+            while (currentForecast.Count < forecastProfile.forecastLength)
+            {
+                ForecastNewWeather();
+            }
         }
 
         public void SetNextWeather()
         {
 
+            SetupWeatherForecast();
             if (currentForecast.Count == 0)
                 ForecastNewWeather();
 
             SetWeather(currentForecast[0].profile);
-            weatherTimer += currentForecast[0].weatherProfileDuration;
+            weatherTimer += currentForecast[0].duration;
 
             currentForecast.RemoveAt(0);
             ForecastNewWeather();
@@ -286,22 +246,19 @@ namespace DistantLands.Cozy
         public void SetWeather(WeatherProfile prof, float transitionTime)
         {
 
-
             currentWeather = prof;
             weatherChangeCheck = currentWeather;
 
             if (weightedWeatherProfiles.Find(x => x.profile == prof) == null)
-                weightedWeatherProfiles.Add(new WeightedWeather() { profile = prof, weight = 0, transitioning = true });
+                weightedWeatherProfiles.Add(new WeatherRelation() { profile = prof, weight = 0, transitioning = true });
 
-            foreach (WeightedWeather j in weightedWeatherProfiles)
+            foreach (WeatherRelation j in weightedWeatherProfiles)
             {
                 if (j.profile == prof)
-                    StartCoroutine(j.Transition(1, transitionTime));
+                    weatherSphere.StartCoroutine(j.Transition(1, transitionTime));
                 else
-                    StartCoroutine(j.Transition(0, transitionTime));
+                    weatherSphere.StartCoroutine(j.Transition(0, transitionTime));
             }
-
-
         }
 
         /// <summary>
@@ -310,110 +267,59 @@ namespace DistantLands.Cozy
         public void SetWeather(WeatherProfile prof)
         {
 
-            currentWeather = prof;
-            weatherChangeCheck = currentWeather;
-
-            if (weightedWeatherProfiles.Find(x => x.profile == prof) == null)
-                weightedWeatherProfiles.Add(new WeightedWeather() { profile = prof, weight = 0, transitioning = true });
-
-            foreach (WeightedWeather j in weightedWeatherProfiles)
-            {
-                if (j.profile == prof)
-                    StartCoroutine(j.Transition(1, weatherTransitionTime));
-                else
-                    StartCoroutine(j.Transition(0, weatherTransitionTime));
-            }
-
+            SetWeather(prof, weatherTransitionTime);
 
         }
 
         public void ForecastNewWeather()
         {
 
-            WeatherPattern i = new WeatherPattern();
+            WeatherProfile weatherProfile;
 
             if (currentForecast.Count > 0)
-                i.profile = WeightedRandom(GetNextWeatherArray(forecastProfile.profilesToForecast.ToArray(), currentForecast.Last().profile.forecastNext, currentForecast.Last().profile.forecastModifierMethod));
+                weatherProfile = PickRandomWeather(GetNextWeatherArray(forecastProfile.profilesToForecast.ToArray(), currentForecast.Last().profile.forecastNext, currentForecast.Last().profile.forecastModifierMethod));
             else
-                i.profile = WeightedRandom(forecastProfile.profilesToForecast.ToArray());
-            i.weatherProfileDuration = Random.Range(i.profile.weatherTime.x, i.profile.weatherTime.y);
+                weatherProfile = PickRandomWeather(forecastProfile.profilesToForecast.ToArray());
 
-            i.startTicks = weatherSphere.currentTicks + weatherTimer;
-
-            foreach (WeatherPattern j in currentForecast)
-                i.startTicks += j.weatherProfileDuration;
-
-
-            while (i.startTicks > weatherSphere.perennialProfile.ticksPerDay)
-                i.startTicks -= weatherSphere.perennialProfile.ticksPerDay;
-
-            i.endTicks = i.startTicks + i.weatherProfileDuration;
-
-            while (i.endTicks > weatherSphere.perennialProfile.ticksPerDay)
-                i.endTicks -= weatherSphere.perennialProfile.ticksPerDay;
-
-
-            currentForecast.Add(i);
+            ForecastNewWeather(weatherProfile, Random.Range(weatherProfile.minWeatherTime, weatherProfile.maxWeatherTime));
 
         }
 
         public void ForecastNewWeather(WeatherProfile weatherProfile)
         {
 
-            WeatherPattern i = new WeatherPattern();
-
-
-            i.profile = weatherProfile;
-            i.weatherProfileDuration = Random.Range(i.profile.weatherTime.x, i.profile.weatherTime.y);
-
-            i.startTicks = weatherSphere.currentTicks + weatherTimer;
-
-            foreach (WeatherPattern j in currentForecast)
-                i.startTicks += j.weatherProfileDuration;
-
-
-            while (i.startTicks > weatherSphere.perennialProfile.ticksPerDay)
-                i.startTicks -= weatherSphere.perennialProfile.ticksPerDay;
-
-            i.endTicks = i.startTicks + i.weatherProfileDuration;
-
-            while (i.endTicks > weatherSphere.perennialProfile.ticksPerDay)
-                i.endTicks -= weatherSphere.perennialProfile.ticksPerDay;
-
-
-            currentForecast.Add(i);
+            ForecastNewWeather(weatherProfile, Random.Range(weatherProfile.minWeatherTime, weatherProfile.maxWeatherTime));
 
         }
 
-        public void ForecastNewWeather(WeatherProfile weatherProfile, float ticks)
+        public void ForecastNewWeather(WeatherProfile weatherProfile, float duration)
         {
 
-            WeatherPattern i = new WeatherPattern();
+            WeatherPattern i = new WeatherPattern
+            {
+                profile = weatherProfile
+            };
+            if (weatherSelectionMode == EcosystemStyle.forecast)
+            {
+                i.startTime = weatherSphere.timeModule.currentTime + weatherTimer;
 
+                foreach (WeatherPattern j in currentForecast)
+                    i.startTime += j.duration;
 
-            i.profile = weatherProfile;
-            i.weatherProfileDuration = ticks;
-
-            i.startTicks = weatherSphere.currentTicks + weatherTimer;
-
-            foreach (WeatherPattern j in currentForecast)
-                i.startTicks += j.weatherProfileDuration;
-
-
-            while (i.startTicks > weatherSphere.perennialProfile.ticksPerDay)
-                i.startTicks -= weatherSphere.perennialProfile.ticksPerDay;
-
-            i.endTicks = i.startTicks + i.weatherProfileDuration;
-
-            while (i.endTicks > weatherSphere.perennialProfile.ticksPerDay)
-                i.endTicks -= weatherSphere.perennialProfile.ticksPerDay;
-
+                i.endTime = (i.startTime + duration) % 1;
+                i.startTime %= 1;
+            }
+            else
+            {
+                i.startTime = 0;
+                i.endTime = 1;
+            }
 
             currentForecast.Add(i);
 
         }
 
-        public WeatherProfile WeightedRandom(WeatherProfile[] profiles)
+        WeatherProfile PickRandomWeather(WeatherProfile[] profiles)
         {
 
             if (profiles.Count() == 0)
@@ -422,18 +328,15 @@ namespace DistantLands.Cozy
             WeatherProfile i = null;
             List<float> floats = new List<float>();
             float totalChance = 0;
-            float inTicks = 0;
+            float weatherStartTime = 0;
 
             foreach (WeatherPattern k in currentForecast)
-                inTicks += k.weatherProfileDuration;
+                weatherStartTime += k.endTime - k.startTime;
 
 
             foreach (WeatherProfile k in profiles)
             {
-                float chance = k.GetChance(weatherSphere.GetTemperature(false, inTicks),
-                    weatherSphere.GetPrecipitation(inTicks),
-                    weatherSphere.GetCurrentYearPercentage(inTicks),
-                    weatherSphere.currentTicks + (inTicks - Mathf.Floor(inTicks / weatherSphere.perennialProfile.ticksPerDay)), 0, 0);
+                float chance = k.GetChance(weatherSphere, weatherStartTime);
                 floats.Add(chance);
                 totalChance += chance;
             }
@@ -445,6 +348,11 @@ namespace DistantLands.Cozy
 
             while (l <= selection)
             {
+                if (m >= floats.Count)
+                {
+                    i = profiles[profiles.Length - 1];
+                    break;
+                }
 
                 if (selection >= l && selection < l + floats[m])
                 {
@@ -495,32 +403,83 @@ namespace DistantLands.Cozy
 
         }
 
-        public float GetTemperature(bool celsius)
+    }
+
+#if UNITY_EDITOR
+    public static class EcosystemEditor
+    {
+
+        public static bool selectionWindowIsOpen;
+        public static bool forecastWindowIsOpen;
+        public static bool currentWeatherWindowIsOpen;
+
+        public static void DrawEditor(SerializedProperty ecosystem)
         {
 
-            return climateProfile.GetTemperature(celsius, weatherSphere) + localTemperatureFilter;
+            selectionWindowIsOpen = EditorGUILayout.BeginFoldoutHeaderGroup(selectionWindowIsOpen, new GUIContent("    Selection Settings"), EditorUtilities.FoldoutStyle);
 
-        }
+            EditorGUILayout.EndFoldoutHeaderGroup();
 
-        public float GetTemperature(bool celsius, float inTicks)
-        {
+            bool useSingle = (CozyEcosystem.EcosystemStyle)ecosystem.FindPropertyRelative("weatherSelectionMode").enumValueIndex == CozyEcosystem.EcosystemStyle.automatic;
 
-            return climateProfile.GetTemperature(celsius, weatherSphere, inTicks) + localTemperatureFilter;
+            if (selectionWindowIsOpen)
+            {
+                EditorGUI.BeginChangeCheck();
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(ecosystem.FindPropertyRelative("weatherSelectionMode"));
+                if ((CozyEcosystem.EcosystemStyle)ecosystem.FindPropertyRelative("weatherSelectionMode").enumValueIndex != CozyEcosystem.EcosystemStyle.manual)
+                {
+                    if ((CozyEcosystem.EcosystemStyle)ecosystem.FindPropertyRelative("weatherSelectionMode").enumValueIndex == CozyEcosystem.EcosystemStyle.automatic)
+                        EditorGUILayout.PropertyField(ecosystem.FindPropertyRelative("currentWeather"), new GUIContent("Current Weather"));
+                    else
+                        EditorGUILayout.PropertyField(ecosystem.FindPropertyRelative("currentWeather"), new GUIContent("Preview Weather"));
+                }
+                else
+                    EditorGUILayout.PropertyField(ecosystem.FindPropertyRelative("weightedWeatherProfiles"), new GUIContent("Weather Ratios"));
 
-        }
+                EditorGUI.indentLevel--;
 
-        public float GetPrecipitation()
-        {
+            }
+            if ((CozyEcosystem.EcosystemStyle)ecosystem.FindPropertyRelative("weatherSelectionMode").enumValueIndex == CozyEcosystem.EcosystemStyle.automatic)
+            {
+                currentWeatherWindowIsOpen = EditorGUILayout.BeginFoldoutHeaderGroup(currentWeatherWindowIsOpen, new GUIContent("    Profile Settings"), EditorUtilities.FoldoutStyle);
 
-            return climateProfile.GetHumidity(weatherSphere) + localPrecipitationFilter;
+                EditorGUILayout.EndFoldoutHeaderGroup();
 
-        }
+                if (currentWeatherWindowIsOpen)
+                {
+                    EditorGUI.indentLevel++;
+                    (Editor.CreateEditor(ecosystem.FindPropertyRelative("currentWeather").objectReferenceValue) as E_WeatherProfile).DisplayInCozyWindow();
+                    EditorGUI.indentLevel--;
+                }
+            }
+            else if ((CozyEcosystem.EcosystemStyle)ecosystem.FindPropertyRelative("weatherSelectionMode").enumValueIndex != CozyEcosystem.EcosystemStyle.manual)
+            {
 
-        public float GetPrecipitation(float inTicks)
-        {
+                forecastWindowIsOpen = EditorGUILayout.BeginFoldoutHeaderGroup(forecastWindowIsOpen,
+                    new GUIContent("    Forecasting Behaviors"), EditorUtilities.FoldoutStyle);
 
-            return climateProfile.GetHumidity(weatherSphere, inTicks) + localPrecipitationFilter;
+                EditorGUILayout.EndFoldoutHeaderGroup();
+
+                if (forecastWindowIsOpen)
+                {
+
+                    EditorGUI.indentLevel++;
+                    EditorGUILayout.PropertyField(ecosystem.FindPropertyRelative("forecastProfile"));
+                    EditorGUILayout.Space();
+                    EditorGUI.indentLevel++;
+                    if (ecosystem.FindPropertyRelative("forecastProfile").objectReferenceValue)
+                        Editor.CreateEditor(ecosystem.FindPropertyRelative("forecastProfile").objectReferenceValue).OnInspectorGUI();
+                    EditorGUI.indentLevel--;
+                    EditorGUILayout.Space();
+                    EditorGUILayout.PropertyField(ecosystem.FindPropertyRelative("weatherTransitionTime"));
+                    EditorGUI.indentLevel--;
+
+                }
+            }
         }
 
     }
+#endif
+
 }

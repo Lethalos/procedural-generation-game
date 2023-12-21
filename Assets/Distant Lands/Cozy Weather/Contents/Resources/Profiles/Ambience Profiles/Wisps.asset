@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Wisps
   m_EditorClassIdentifier: 
   playTime: {x: 20, y: 40}
+  minTime: 0.0625
+  maxTime: 0.14583333
   likelihood: 0.573
   dontPlayDuring:
   - {fileID: 11400000, guid: 94bbf17d66f5c6b4ebcd9189ba34367d, type: 2}

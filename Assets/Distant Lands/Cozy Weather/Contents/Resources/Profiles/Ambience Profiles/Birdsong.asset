@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Birdsong
   m_EditorClassIdentifier: 
   playTime: {x: 20, y: 40}
+  minTime: 0.0625
+  maxTime: 0.14583333
   likelihood: 1
   dontPlayDuring:
   - {fileID: 11400000, guid: 94bbf17d66f5c6b4ebcd9189ba34367d, type: 2}
@@ -84,7 +86,5 @@ MonoBehaviour:
       m_RotationOrder: 0
   FX:
   - {fileID: 11400000, guid: d1f77010922631040adf14564bcd92cb, type: 2}
-  particleFX: {fileID: 0}
-  soundFX: {fileID: 8300000, guid: 89fc3ce0f4f66454494a0364dfc11df9, type: 3}
   FXVolume: 1
   useVFX: 1

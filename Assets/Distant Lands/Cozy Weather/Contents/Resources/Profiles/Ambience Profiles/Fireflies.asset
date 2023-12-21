@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Fireflies
   m_EditorClassIdentifier: 
   playTime: {x: 20, y: 40}
+  minTime: 0.0625
+  maxTime: 0.14583333
   likelihood: 1
   dontPlayDuring:
   - {fileID: 11400000, guid: 94bbf17d66f5c6b4ebcd9189ba34367d, type: 2}
@@ -101,7 +103,5 @@ MonoBehaviour:
   FX:
   - {fileID: 11400000, guid: bf7f46c5732d34d4e96d29c5cee44a76, type: 2}
   - {fileID: 11400000, guid: 7def3e3be949d714b9103b2351b3d736, type: 2}
-  particleFX: {fileID: 2521238412888942397, guid: c39e51d5c48a32e4e836306b1396ce9f, type: 3}
-  soundFX: {fileID: 8300000, guid: 8b4b2afdd467c50429a6db145bb98065, type: 3}
   FXVolume: 0.419
   useVFX: 1

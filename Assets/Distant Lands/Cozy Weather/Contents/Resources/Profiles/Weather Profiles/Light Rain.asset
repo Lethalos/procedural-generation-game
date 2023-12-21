@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: Light Rain
   m_EditorClassIdentifier: 
-  weatherTime: {x: 60, y: 120}
+  minWeatherTime: 0.125
+  maxWeatherTime: 0.33333334
   likelihood: 1.46
   forecastNext:
   - {fileID: 11400000, guid: 3500d156aa5168944b5dd4b8e84ff00c, type: 2}
@@ -104,23 +105,12 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  cloudSettings:
-    cumulusCoverage: 1.75
-    altocumulusCoverage: 0
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 0
-    cirrusCoverage: 0
-    nimbusCoverage: 0
-    nimbusVariation: 0.9
-    nimbusHeightEffect: 1
-    borderHeight: 0.5
-    borderVariation: 0.9
-    borderEffect: 1
-  fogDensity: 1.2
   FX:
-  - {fileID: 11400000, guid: 82f08f29e9d166f42a369ee7f50562ba, type: 2}
-  - {fileID: 11400000, guid: 15b37cbb30f878c489770528e2780033, type: 2}
-  - {fileID: 11400000, guid: 3ca682fa89b9e784087c74f4b948d1d7, type: 2}
+  - {fileID: 11400000, guid: 37958e75fc835c242a6ab218c3f7c868, type: 2}
+  - {fileID: 11400000, guid: 415a4a532acec82488fe4035ddc1a673, type: 2}
+  - {fileID: 11400000, guid: 81d5405a7a2400b468f4feeace096c59, type: 2}
+  - {fileID: 11400000, guid: f1060915b42a4094eb4db8e67b27e8f4, type: 2}
   - {fileID: 11400000, guid: 8db7c251c41aa86488164aa359d06980, type: 2}
   - {fileID: 11400000, guid: 68819bc966d79894e94dbfbdfaf541fa, type: 2}
-  - {fileID: 11400000, guid: 81d5405a7a2400b468f4feeace096c59, type: 2}
+  - {fileID: 11400000, guid: f984b0c2b2a1b164ab66e7aaa8244ba4, type: 2}
+  - {fileID: 11400000, guid: 82f08f29e9d166f42a369ee7f50562ba, type: 2}

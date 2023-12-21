@@ -16,50 +16,67 @@ namespace DistantLands.Cozy
         public AnimationCurve curve;
 
 
-        public float GetChance(float temp, float precip, float yearPercent, float timePercent, float wetness, float snow)
+        public float GetChance(CozyWeather weather)
         {
-
             switch (limitType)
             {
                 case LimitType.Temperature:
-                    return curve.Evaluate(temp / 100);
+                    if (weather.climateModule != null)
+                        return curve.Evaluate(weather.climateModule.currentTemperature / 100);
+                    else
+                        return 1;
                 case (LimitType.Precipitation):
-                    return curve.Evaluate(precip / 100);
+                    if (weather.climateModule != null)
+                        return curve.Evaluate(weather.climateModule.currentPrecipitation / 100);
+                    else
+                        return 1;
                 case (LimitType.YearPercentage):
-                    return curve.Evaluate(yearPercent);
+                    return curve.Evaluate(weather.timeModule.yearPercentage);
                 case (LimitType.Time):
-                    return curve.Evaluate(timePercent);
+                    return curve.Evaluate(weather.timeModule.currentTime);
                 case (LimitType.AccumulatedSnow):
-                    return curve.Evaluate(wetness);
+                    if (weather.climateModule)
+                        return curve.Evaluate(weather.climateModule.wetness);
+                    else
+                        return 1;
                 case (LimitType.AccumulatedWetness):
-                    return curve.Evaluate(snow);
+                    if (weather.climateModule)
+                        return curve.Evaluate(weather.climateModule.snowAmount);
+                    else
+                        return 1;
                 default:
                     return 1;
             }
         }
-
-        public float GetChance(CozyWeather weatherSphere)
+        
+        public float GetChance(CozyWeather weather, float inTicks)
         {
             switch (limitType)
             {
                 case LimitType.Temperature:
-                    return curve.Evaluate(weatherSphere.currentTemperature / 100);
+                    if (weather.climateModule != null)
+                        return curve.Evaluate(weather.climateModule.currentTemperature / 100);
+                    else
+                        return 1;
                 case (LimitType.Precipitation):
-                    return curve.Evaluate(weatherSphere.currentPrecipitation / 100);
+                    if (weather.climateModule != null)
+                        return curve.Evaluate(weather.climateModule.currentPrecipitation / 100);
+                    else
+                        return 1;
                 case (LimitType.YearPercentage):
-                    return curve.Evaluate(weatherSphere.yearPercentage);
+                    return curve.Evaluate(weather.timeModule.yearPercentage);
                 case (LimitType.Time):
-                    return curve.Evaluate(weatherSphere.dayPercentage);
+                    return curve.Evaluate(weather.timeModule.currentTime);
                 case (LimitType.AccumulatedSnow):
-                    if (weatherSphere.GetModule<CozyMaterialManager>())
-                        return curve.Evaluate(weatherSphere.GetModule<CozyMaterialManager>().snowAmount);
+                    if (weather.climateModule)
+                        return curve.Evaluate(weather.climateModule.wetness);
                     else
-                        return 0;
+                        return 1;
                 case (LimitType.AccumulatedWetness):
-                    if (weatherSphere.GetModule<CozyMaterialManager>())
-                        return curve.Evaluate(weatherSphere.GetModule<CozyMaterialManager>().wetness);
+                    if (weather.climateModule)
+                        return curve.Evaluate(weather.climateModule.snowAmount);
                     else
-                        return 0;
+                        return 1;
                 default:
                     return 1;
             }
@@ -141,7 +158,7 @@ namespace DistantLands.Cozy
             }
 
 
-            //sampleCenter = EditorGUI.PrefixLabel(sampleCenter, GUIUtility.GetControlID(FocusType.Keyboard), new GUIContent(_name, _tooltip));
+            //position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Keyboard), new GUIContent(_name, _tooltip));
 
             var indent = EditorGUI.indentLevel;
             EditorGUI.indentLevel = 0;

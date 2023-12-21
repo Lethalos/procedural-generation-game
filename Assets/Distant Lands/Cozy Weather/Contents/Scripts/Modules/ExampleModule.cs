@@ -9,14 +9,6 @@ namespace DistantLands.Cozy
     public class ExampleModule : CozyModule
     {
 
-        /* __________________________________________________________________
-        
-        
-        This script shows an example of an empty module that you can use as a 
-        base for creating your own custom modules! 
-        
-        _____________________________________________________________________*/
-
 
 
     }
@@ -36,8 +28,33 @@ namespace DistantLands.Cozy
 
         }
 
-        void OnEnable()
+
+        public override void GetDebugInformation()
         {
+
+
+
+        }
+
+        public override void GetReportsInformation()
+        {
+
+
+
+        }
+        
+        public override void OpenContextMenu(Vector2 pos)
+        {
+
+            //Use this to add new actions to the editor's context menu if needed for your module
+
+            GenericMenu menu = new GenericMenu();
+            // menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Remove Module"), false, RemoveModule);
+            menu.AddItem(new GUIContent("Reset"), false, ResetModule);
+            menu.AddItem(new GUIContent("Edit Script"), false, EditScript);
+            
+            menu.ShowAsContext();
 
         }
 

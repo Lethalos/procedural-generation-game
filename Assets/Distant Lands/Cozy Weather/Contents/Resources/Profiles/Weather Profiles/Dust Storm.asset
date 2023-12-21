@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: Dust Storm
   m_EditorClassIdentifier: 
-  weatherTime: {x: 45, y: 90}
-  likelihood: 0.405
+  minWeatherTime: 0.125
+  maxWeatherTime: 0.33333334
+  likelihood: 0.7
   forecastNext:
   - {fileID: 11400000, guid: 3500d156aa5168944b5dd4b8e84ff00c, type: 2}
   forecastModifierMethod: 0
@@ -77,23 +78,13 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  cloudSettings:
-    cumulusCoverage: 2
-    altocumulusCoverage: 0
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 0
-    cirrusCoverage: 0
-    nimbusCoverage: 0
-    nimbusVariation: 0.9
-    nimbusHeightEffect: 1
-    borderHeight: 0.5
-    borderVariation: 0.9
-    borderEffect: 1
-  fogDensity: 2
   FX:
-  - {fileID: 11400000, guid: d6e823a9cbb7d0d4bbcd351581c9e2ad, type: 2}
-  - {fileID: 11400000, guid: 55f53f0020eb43a468b2ad79f30010b7, type: 2}
-  - {fileID: 11400000, guid: 75c6c556a1ea30c4baec9dce115052e1, type: 2}
+  - {fileID: 11400000, guid: 37958e75fc835c242a6ab218c3f7c868, type: 2}
   - {fileID: 11400000, guid: b55acd7c26c62c946918381a43ba0d45, type: 2}
-  - {fileID: 11400000, guid: 3ca682fa89b9e784087c74f4b948d1d7, type: 2}
+  - {fileID: 11400000, guid: 309db4bb7e291af45a66d9d4bee3c5a2, type: 2}
   - {fileID: 11400000, guid: 0fd424003762fd243bc32a39a3fbd0d8, type: 2}
+  - {fileID: 11400000, guid: f73311181721394419e3d6d528ea6800, type: 2}
+  - {fileID: 11400000, guid: b9372b0ba0c59bf4b809759871ded87c, type: 2}
+  - {fileID: 11400000, guid: 7e7b400b7a1ede9469814c9834a03d8d, type: 2}
+  - {fileID: 11400000, guid: d6e823a9cbb7d0d4bbcd351581c9e2ad, type: 2}
+  - {fileID: 11400000, guid: 4e60964cc95564749b53a50fec5bc536, type: 2}

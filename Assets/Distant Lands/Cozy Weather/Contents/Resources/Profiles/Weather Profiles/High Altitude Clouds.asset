@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: High Altitude Clouds
   m_EditorClassIdentifier: 
-  weatherTime: {x: 30, y: 90}
+  minWeatherTime: 0.125
+  maxWeatherTime: 0.33333334
   likelihood: 1
   forecastNext:
   - {fileID: 11400000, guid: 28ce0162a9eccda47a345fd44e9e6e15, type: 2}
@@ -54,17 +55,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 0
-  cloudSettings:
-    cumulusCoverage: 0
-    altocumulusCoverage: 2
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 1.273
-    cirrusCoverage: 0
-    nimbusCoverage: 0
-    nimbusVariation: 0.9
-    nimbusHeightEffect: 1
-    borderHeight: 0.421
-    borderVariation: 0.9
-    borderEffect: 1
-  fogDensity: 1
-  FX: []
+  FX:
+  - {fileID: 11400000, guid: ee0db755c234c524e996c7eca6404cb8, type: 2}
+  - {fileID: 11400000, guid: 485b0d34053264f44afdb830525cd648, type: 2}

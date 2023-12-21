@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 #if UNITY_EDITOR
@@ -21,21 +19,28 @@ namespace DistantLands.Cozy.Data
         [Range(0, 1)]
         public float distance = 1;
         public bool useLight = true;
-        #if COZY_URP && UNITY_2021_3_OR_NEWER
-        public LensFlareDataSRP flare;
-        #else
+#if COZY_URP && UNITY_2021_3_OR_NEWER
+        public LensFlareComponentSRP flareRef;
+        public AtmosphereProfile.URPFlare flare;
+#else
         public Flare flare;
-        #endif
+#endif
         [ColorUsage(false, true)]
         public Color lightColorMultiplier = Color.white;
         public LightShadows castShadows;
         public float orbitOffset;
         public Vector3 initialRotation;
         public float satelliteRotateSpeed;
+        public bool linkToDay;
+        public int rotationPeriod = 28;
+        public int rotationPeriodOffset;
         public Vector3 satelliteRotateAxis;
         public float satelliteDirection;
         public float satelliteRotation;
         public float satellitePitch;
+        public float declination;
+        public int declinationPeriod;
+        public int declinationPeriodOffset;
         public bool changedLastFrame;
         public bool open;
 
@@ -63,9 +68,28 @@ namespace DistantLands.Cozy.Data
             EditorGUILayout.PropertyField(serializedObject.FindProperty("castShadows"));
             EditorGUI.EndDisabledGroup();
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("satelliteRotateSpeed"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("satelliteRotateAxis"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("initialRotation"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("linkToDay"));
+            EditorGUI.indentLevel++;
+            if (serializedObject.FindProperty("linkToDay").boolValue)
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("rotationPeriod"));
+                if (serializedObject.FindProperty("rotationPeriod").intValue <= 0)
+                    serializedObject.FindProperty("rotationPeriod").intValue = 1;
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("rotationPeriodOffset"));
+                EditorGUILayout.Space();
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("declination"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("declinationPeriod"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("declinationPeriodOffset"));
+                if (serializedObject.FindProperty("declinationPeriod").intValue <= 0)
+                    serializedObject.FindProperty("declinationPeriod").intValue = 1;
+            }
+            else
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("satelliteRotateSpeed"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("initialRotation"));
+            }
+            EditorGUI.indentLevel--;
             EditorGUILayout.Space();
             EditorGUILayout.PropertyField(serializedObject.FindProperty("orbitOffset"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("satelliteDirection"));
@@ -83,39 +107,17 @@ namespace DistantLands.Cozy.Data
 
             serializedObject.Update();
 
-            serializedObject.FindProperty("open").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("open").boolValue, $"    {target.name}", EditorUtilities.FoldoutStyle());
+            serializedObject.FindProperty("open").boolValue = EditorGUILayout.BeginFoldoutHeaderGroup(serializedObject.FindProperty("open").boolValue, $"    {target.name}", EditorUtilities.FoldoutStyle);
             EditorGUILayout.EndFoldoutHeaderGroup();
+            serializedObject.ApplyModifiedProperties();
 
             if (serializedObject.FindProperty("open").boolValue)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("satelliteReference"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("size"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("distance"));
-                EditorGUILayout.Space();
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("useLight"));
-                EditorGUI.indentLevel++;
-                EditorGUI.BeginDisabledGroup(!serializedObject.FindProperty("useLight").boolValue);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("flare"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("lightColorMultiplier"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("castShadows"));
-                EditorGUI.indentLevel--;
-                EditorGUI.EndDisabledGroup();
-                EditorGUILayout.Space();
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("satelliteRotateSpeed"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("satelliteRotateAxis"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("initialRotation"));
-                EditorGUILayout.Space();
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("orbitOffset"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("satelliteDirection"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("satellitePitch"));
-
-                if (serializedObject.hasModifiedProperties)
-                    serializedObject.FindProperty("changedLastFrame").boolValue = true;
+                OnInspectorGUI();
                 EditorGUI.indentLevel--;
 
             }
-            serializedObject.ApplyModifiedProperties();
 
         }
 

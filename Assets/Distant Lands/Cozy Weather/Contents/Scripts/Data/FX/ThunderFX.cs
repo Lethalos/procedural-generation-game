@@ -1,4 +1,4 @@
-// Distant Lands 2022.
+// Distant Lands 2023.
 
 
 
@@ -16,78 +16,57 @@ namespace DistantLands.Cozy.Data
     {
 
         public Vector2 timeBetweenStrikes;
+        public GameObject thunderPrefab = null;
         public float weight;
-        CozyThunderManager thunderManager;
+        public CozyThunderManager runtimeRef;
+        public float minimumDistance = 700;
+        public float maximumDistance = 1200;
+        public float minScreenXmultiplier = 0.1f;
+        public float maxScreenXmultiplier = 0.9f;
+        public float minScreenYmultiplier = 0.0f;
+        public float maxScreenYmultiplier = 0.1f;
+        [Range(0, 1)]
+        [Tooltip("What percentage of the time should the lightning and thunder be forced to spawn in the camera's view?")]
+        public float spawnInFrustumPercentage = 0.5f;
 
-        public override void PlayEffect()
+        public override void PlayEffect(float weight)
         {
 
-            if (!VFXMod)
-                if (InitializeEffect(null) == false)
+            if (!runtimeRef)
+                if (InitializeEffect(weatherSphere) == false)
                     return;
 
-            if (VFXMod.thunderManager.isEnabled)
-                weight = 1;
-            else
-                weight = 0;
-
-
-        }
-        public override void PlayEffect(float i)
-        {
-
-            if (!VFXMod)
-                if (InitializeEffect(null) == false)
-                    return;
-                
-                
-            if (i <= 0.03f)
-            {
-                StopEffect();
-                return;
-            }
-                    
-            if (VFXMod.thunderManager.isEnabled)
-                weight = i;
-            else
-                weight = 0;
+            runtimeRef.PlayEffect(transitionTimeModifier.Evaluate(weight));
 
         }
 
-        public override void StopEffect()
+        public override bool InitializeEffect(CozyWeather weather)
         {
-
-            weight = 0;
-
-        }
-
-
-        public override bool InitializeEffect(VFXModule VFX)
-        {
-            if (VFX == null)
-                VFX = CozyWeather.instance.VFX;
-                
-            VFXMod = VFX;
-
-            if (!VFX.thunderManager.isEnabled)
-            {
-
+            if (!Application.isPlaying)
                 return false;
 
+            base.InitializeEffect(weather);
+
+            if (runtimeRef == null)
+            {
+                if (weather.GetFXRuntimeRef<CozyThunderManager>(name))
+                {
+                    runtimeRef = weather.GetFXRuntimeRef<CozyThunderManager>(name);
+                    return true;
+                }
+
+                runtimeRef = new GameObject().AddComponent<CozyThunderManager>();
+
+                runtimeRef.gameObject.name = name;
+                runtimeRef.transform.parent = weather.thunderFXParent;
+                runtimeRef.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                runtimeRef.weatherSphere = weather;
+                runtimeRef.thunderFX = this;
+
             }
 
-            thunderManager = VFX.thunderManager;
-            thunderManager.thunderFX.Add(this);
-
             return true;
-
         }
-
-        public override void DeinitializeEffect()
-        {
-            
-        }
-
     }
 
 
@@ -107,7 +86,28 @@ namespace DistantLands.Cozy.Data
         {
             serializedObject.Update();
 
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("timeBetweenStrikes"), new GUIContent("Time Between Strikes"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("thunderPrefab"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("timeBetweenStrikes"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("minimumDistance"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("maximumDistance"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("spawnInFrustumPercentage"));
+
+            float min = serializedObject.FindProperty("minScreenXmultiplier").floatValue;
+            float max = serializedObject.FindProperty("maxScreenXmultiplier").floatValue;
+
+            EditorGUILayout.MinMaxSlider("Frustum Placement X", ref min, ref max, 0, 1);
+
+            serializedObject.FindProperty("minScreenXmultiplier").floatValue = min;
+            serializedObject.FindProperty("maxScreenXmultiplier").floatValue = max;
+
+            min = serializedObject.FindProperty("minScreenYmultiplier").floatValue;
+            max = serializedObject.FindProperty("maxScreenYmultiplier").floatValue;
+
+            EditorGUILayout.MinMaxSlider("Frustum Placement Y", ref min, ref max, 0, 1);
+
+            serializedObject.FindProperty("minScreenYmultiplier").floatValue = min;
+            serializedObject.FindProperty("maxScreenYmultiplier").floatValue = max;
+
 
             serializedObject.ApplyModifiedProperties();
 
@@ -118,19 +118,45 @@ namespace DistantLands.Cozy.Data
 
             float space = EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             var propPosA = new Rect(pos.x, pos.y + space, pos.width, EditorGUIUtility.singleLineHeight);
+            var propPosB = new Rect(pos.x, pos.y + space * 2, pos.width, EditorGUIUtility.singleLineHeight);
+            var propPosC = new Rect(pos.x, pos.y + space * 3, pos.width, EditorGUIUtility.singleLineHeight);
+            var propPosD = new Rect(pos.x, pos.y + space * 4, pos.width, EditorGUIUtility.singleLineHeight);
+            var propPosE = new Rect(pos.x, pos.y + space * 5, pos.width, EditorGUIUtility.singleLineHeight);
+            var propPosF = new Rect(pos.x, pos.y + space * 6, pos.width, EditorGUIUtility.singleLineHeight);
+            var propPosG = new Rect(pos.x, pos.y + space * 7, pos.width, EditorGUIUtility.singleLineHeight);
 
             serializedObject.Update();
 
-            EditorGUI.PropertyField(propPosA, serializedObject.FindProperty("timeBetweenStrikes"));
-            
+            EditorGUI.PropertyField(propPosA, serializedObject.FindProperty("thunderPrefab"));
+            EditorGUI.PropertyField(propPosB, serializedObject.FindProperty("timeBetweenStrikes"));
+            EditorGUI.PropertyField(propPosC, serializedObject.FindProperty("minimumDistance"));
+            EditorGUI.PropertyField(propPosD, serializedObject.FindProperty("maximumDistance"));
+            EditorGUI.PropertyField(propPosE, serializedObject.FindProperty("spawnInFrustumPercentage"));
+
+            float min = serializedObject.FindProperty("minScreenXmultiplier").floatValue;
+            float max = serializedObject.FindProperty("maxScreenXmultiplier").floatValue;
+
+            EditorGUI.MinMaxSlider(propPosF, "Frustum Placement X", ref min, ref max, 0, 1);
+
+            serializedObject.FindProperty("minScreenXmultiplier").floatValue = min;
+            serializedObject.FindProperty("maxScreenXmultiplier").floatValue = max;
+
+            min = serializedObject.FindProperty("minScreenYmultiplier").floatValue;
+            max = serializedObject.FindProperty("maxScreenYmultiplier").floatValue;
+
+            EditorGUI.MinMaxSlider(propPosG, "Frustum Placement Y", ref min, ref max, 0, 1);
+
+            serializedObject.FindProperty("minScreenYmultiplier").floatValue = min;
+            serializedObject.FindProperty("maxScreenYmultiplier").floatValue = max;
+
             serializedObject.ApplyModifiedProperties();
         }
 
         public override float GetLineHeight()
         {
 
-            return 1;
-            
+            return 7;
+
         }
 
     }

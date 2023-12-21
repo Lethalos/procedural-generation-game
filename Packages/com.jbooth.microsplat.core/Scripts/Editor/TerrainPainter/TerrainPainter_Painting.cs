@@ -251,9 +251,8 @@ namespace JBooth.MicroSplat
          wp.x *= ter.terrainData.size.x / (float)splatControl.width;
          wp.y = ter.terrainData.GetHeight(x, y);
          wp.z *= ter.terrainData.size.z / (float)splatControl.height;
-         wp += ter.transform.position;
-         return wp;
-
+         var mtx = Matrix4x4.TRS(ter.transform.position, ter.transform.rotation, Vector3.one).inverse;
+         return mtx.MultiplyPoint(wp);
       }
 
       void MegaBrush(Texture2D tex, int x, int y, float finalStr)

@@ -134,7 +134,7 @@
             float3 g_index = floor(pos);
             float3 pc = g_index / density;
             
-            float3 noise = _SnowSparkleNoiseAmplitude * SAMPLE_TEXTURE2D_LOD( _SnowSparkleNoise, sampler_Diffuse, noiseDensity * pc.xz + pc.y, 0);
+            float3 noise = _SnowSparkleNoiseAmplitude * SAMPLE_TEXTURE2D_LOD( _SnowSparkleNoise, sampler_Diffuse, noiseDensity * pc.xz + pc.y, 0).rgb;
             float3 offset = 0.75;
             float3 px = pos - g_index + 0.5 * frac(noise)-offset;
 
@@ -276,9 +276,6 @@
             
             float3 snowUpVector = _SnowUpVector;
             float worldHeight = i.worldHeight;
-            #if _PLANETVECTORS
-               snowUpVector = i.worldUpVector;
-            #endif
             
             
             half snowDot = max(snowLevel/2, dot(worldNormal, snowUpVector));

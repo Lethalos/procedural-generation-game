@@ -25,21 +25,18 @@ namespace DistantLands.Cozy
 
         void Awake()
         {
-
-            SetupModule();
             TryFindFog();
-
         }
 
         void Update()
         {
-            
+
             if (weatherSphere == null)
-                base.SetupModule();
+                base.InitializeModule();
 
             if (volumeProfile == null)
                 fog = null;
-                
+
             if (weatherSphere.freezeUpdateInEditMode && !Application.isPlaying)
                 return;
 
@@ -68,7 +65,7 @@ namespace DistantLands.Cozy
                 foreach (VolumeComponent component in volumeProfile.components)
                 {
 
-                    if (component.GetType() == typeof(ButoVolumetricFog))
+                    if (component is ButoVolumetricFog)
                     {
                         fog = (ButoVolumetricFog)component;
                         return;
@@ -82,7 +79,7 @@ namespace DistantLands.Cozy
                     foreach (VolumeComponent component in vol.profile.components)
                     {
 
-                        if (component.GetType() == typeof(ButoVolumetricFog))
+                        if (component is ButoVolumetricFog)
                         {
                             fog = (ButoVolumetricFog)component;
                             volumeProfile = vol.profile;
@@ -91,9 +88,6 @@ namespace DistantLands.Cozy
                     }
                 }
             }
-
-            Debug.LogError("Could not find any instance of Buto in your scene! You will have to set the profile manually in the module settings.");
-
         }
 #endif
 
@@ -110,15 +104,14 @@ namespace DistantLands.Cozy
         {
 
             //Place your module's GUI content here.
-            return new GUIContent("    Buto Control", (Texture)Resources.Load("Occa"), "Control Buto Volumetric Fog within the COZY system.");
+            return new GUIContent("    Buto", (Texture)Resources.Load("Occa"), "Control Buto Volumetric Fog within the COZY system.");
 
         }
 
-        void OnEnable()
+        public override void OpenDocumentationURL()
         {
-
+            Application.OpenURL("https://distant-lands.gitbook.io/cozy-stylized-weather-documentation/how-it-works/modules/buto-module");
         }
-
         public override void DisplayInCozyWindow()
         {
             serializedObject.Update();
@@ -126,8 +119,14 @@ namespace DistantLands.Cozy
             EditorGUI.indentLevel++;
 
             EditorGUILayout.HelpBox("Please make sure the \"Import for Buto Integration\" unity package is installed for the shaders to properly recompile.", MessageType.Info);
-            EditorGUILayout.Space(20);
+            
 #if BUTO
+            if (serializedObject.FindProperty("fog").objectReferenceValue == null)
+            {
+                EditorGUILayout.HelpBox("Could not find any instance of Buto in your scene! You will have to set the profile manually in the module settings.", MessageType.Warning);
+                
+            }
+            EditorGUILayout.Space(20);
             if (serializedObject.FindProperty("volumeProfile").objectReferenceValue == null)
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("volumeProfile"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("fogBrightnessMultiplier"));

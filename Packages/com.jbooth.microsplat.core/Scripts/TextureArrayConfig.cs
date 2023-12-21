@@ -293,7 +293,7 @@ namespace JBooth.MicroSplat
       [System.Serializable]
       public class TextureEntry
       {
-         public TerrainLayer terrainLayer;
+         public string layerName; // for overriding terrain layer output
          public Texture2D diffuse;
          public Texture2D height;
          public TextureChannel heightChannel = TextureChannel.G;
@@ -398,37 +398,5 @@ namespace JBooth.MicroSplat
       public List<TextureEntry> sourceTextures2 = new List<TextureEntry>();
       [HideInInspector]
       public List<TextureEntry> sourceTextures3 = new List<TextureEntry>();
-
-      public bool HasTerrainLayer(TerrainLayer l)
-      {
-         foreach (var s in sourceTextures)
-         {
-            if (s.diffuse == l.diffuseTexture && s.normal == l.normalMapTexture && s.diffuse != null)
-               return true;
-         }
-         return false;
-      }
-      public void AddTerrainLayer(TerrainLayer l)
-      {
-            TextureEntry e = new TextureEntry();
-            e.terrainLayer = l;
-            e.diffuse = l.diffuseTexture;
-            e.normal = l.normalMapTexture;
-            e.ao = l.maskMapTexture;
-            e.smoothness = l.maskMapTexture;
-            e.height = l.maskMapTexture;
-            e.aoChannel = TextureChannel.G;
-            e.smoothnessChannel = TextureChannel.A;
-            e.heightChannel = TextureChannel.B;
-            sourceTextures.Add(e);
-            if (clusterMode == ClusterMode.TwoVariations)
-            {
-                sourceTextures2.Add(e);
-            }
-            if (clusterMode == ClusterMode.ThreeVariations)
-            {
-                sourceTextures3.Add(e);
-            }
-        }
    }
 }

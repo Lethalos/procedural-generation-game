@@ -32,11 +32,33 @@ namespace DistantLands.Cozy
 
         }
 
+        public static GUIStyle toolbarButtonIcon = new GUIStyle(GUI.skin.GetStyle("ToolbarButton"))
+        {
+            padding = new RectOffset(-5, -5, -5, -5),
+            fixedWidth = 20,
+            fixedHeight = 20
+        };
+
+#if UNITY_EDITOR
+        public static GUIStyle FoldoutStyle => new GUIStyle(EditorStyles.toolbarButton)
+        {
+            fontStyle = FontStyle.Bold,
+            fontSize = 12,
+            padding = new RectOffset(15, 0, 0, 0),
+            alignment = TextAnchor.MiddleLeft,
+            margin = new RectOffset(30, 10, 5, 5),
+            fixedHeight = 30,
+            stretchWidth = true,
+            // normal = new GUIStyleState()
+            // {
+            //     scaledBackgrounds = EditorStyles.toolbarButton.onNormal.scaledBackgrounds
+            // }
+
+        };
+
+#endif
         public static List<Type> ResetModuleList()
         {
-
-
-
             List<Type> listOfMods = (
           from domainAssembly in AppDomain.CurrentDomain.GetAssemblies()
           from type in domainAssembly.GetTypes()
@@ -48,28 +70,14 @@ namespace DistantLands.Cozy
         }
         public static List<Type> ResetBiomeModulesList()
         {
-
-
-
             List<Type> listOfMods = (
           from domainAssembly in AppDomain.CurrentDomain.GetAssemblies()
           from type in domainAssembly.GetTypes()
-          where typeof(CozyBiomeModule).IsAssignableFrom(type)
+          where typeof(CozyModule).IsAssignableFrom(type) && type.GetInterfaces().Any(i => i == typeof(ICozyBiomeModule))
           select type).ToList();
 
             return listOfMods;
 
-        }
-
-
-        public static GUIStyle FoldoutStyle()
-        {
-
-            GUIStyle foldoutStyle = new GUIStyle(GUI.skin.GetStyle("toolbarPopup"));
-            foldoutStyle.fontStyle = FontStyle.Bold;
-            foldoutStyle.margin = new RectOffset(30, 10, 5, 5);
-
-            return foldoutStyle;
         }
 
 

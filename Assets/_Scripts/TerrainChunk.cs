@@ -31,7 +31,7 @@ public class TerrainChunk
     MeshSettings meshSettings;
     Transform viewer;
 
-    public TerrainChunk(Vector2 coord, HeightMapSettings heightMapSettings, MeshSettings meshSetting, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Transform viewer, Material material)
+    public TerrainChunk(Vector2 coord, HeightMapSettings heightMapSettings, MeshSettings meshSetting, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Transform viewer, Material material, Texture2D splatTexture)
     {
         this.coord = coord;
         this.heightMapSettings = heightMapSettings;
@@ -48,6 +48,14 @@ public class TerrainChunk
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshCollider = meshObject.AddComponent<MeshCollider>();
+
+        // Microsplat
+        MicroSplatMeshTerrain microSplatMeshTerrain =  meshObject.AddComponent<MicroSplatMeshTerrain>();
+        microSplatMeshTerrain.templateMaterial = material;
+        microSplatMeshTerrain.meshTerrains = new MeshRenderer[1];
+        microSplatMeshTerrain.meshTerrains[0] = meshRenderer;
+        microSplatMeshTerrain.controlTextures = new Texture2D[1];
+        microSplatMeshTerrain.controlTextures[0] = splatTexture;
 
         meshRenderer.material = material;
 

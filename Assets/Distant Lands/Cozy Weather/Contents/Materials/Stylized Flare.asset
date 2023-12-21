@@ -26,7 +26,7 @@ MonoBehaviour:
     m_Count: 5
     preserveAspectRatio: 1
     rotation: 0
-    tint: {r: 1, g: 1, b: 1, a: 1}
+    tint: {r: 1, g: 0.88618344, b: 0.7028302, a: 1}
     blendMode: 0
     autoRotate: 0
     flareType: 2
@@ -186,7 +186,7 @@ MonoBehaviour:
     m_Count: 5
     preserveAspectRatio: 1
     rotation: 90
-    tint: {r: 1, g: 1, b: 1, a: 1}
+    tint: {r: 1, g: 0.8862745, b: 0.7019608, a: 1}
     blendMode: 0
     autoRotate: 0
     flareType: 2
@@ -340,17 +340,17 @@ MonoBehaviour:
     translationScale: {x: 1, y: 1}
     m_LocalIntensity: 0.1
     lensFlareTexture: {fileID: 0}
-    uniformScale: 3.39
+    uniformScale: 8.16
     sizeXY: {x: 1, y: 1}
     allowMultipleElement: 0
     m_Count: 5
     preserveAspectRatio: 0
     rotation: 0
-    tint: {r: 1, g: 0.9274787, b: 0.8254717, a: 1}
+    tint: {r: 1, g: 0.8862745, b: 0.7019608, a: 1}
     blendMode: 0
     autoRotate: 0
     flareType: 1
-    modulateByLightColor: 0
+    modulateByLightColor: 1
     isFoldOpened: 0
     distribution: 0
     lengthSpread: 1
@@ -498,7 +498,7 @@ MonoBehaviour:
     positionOffset: {x: 0, y: 0}
     angularOffset: 0
     translationScale: {x: 1, y: 1}
-    m_LocalIntensity: 0.5
+    m_LocalIntensity: 1
     lensFlareTexture: {fileID: 0}
     uniformScale: 2.73
     sizeXY: {x: 1, y: 1}
@@ -506,12 +506,12 @@ MonoBehaviour:
     m_Count: 5
     preserveAspectRatio: 0
     rotation: 0
-    tint: {r: 1, g: 0.9438327, b: 0.7783019, a: 0.5}
+    tint: {r: 1, g: 0.7565385, b: 0.6084906, a: 1}
     blendMode: 0
     autoRotate: 0
     flareType: 1
-    modulateByLightColor: 0
-    isFoldOpened: 0
+    modulateByLightColor: 1
+    isFoldOpened: 1
     distribution: 0
     lengthSpread: 1
     positionCurve:
@@ -670,7 +670,7 @@ MonoBehaviour:
     blendMode: 0
     autoRotate: 0
     flareType: 1
-    modulateByLightColor: 0
+    modulateByLightColor: 1
     isFoldOpened: 0
     distribution: 0
     lengthSpread: 1
@@ -830,7 +830,7 @@ MonoBehaviour:
     blendMode: 0
     autoRotate: 0
     flareType: 1
-    modulateByLightColor: 0
+    modulateByLightColor: 1
     isFoldOpened: 0
     distribution: 0
     lengthSpread: 1
@@ -990,7 +990,7 @@ MonoBehaviour:
     blendMode: 0
     autoRotate: 0
     flareType: 1
-    modulateByLightColor: 0
+    modulateByLightColor: 1
     isFoldOpened: 0
     distribution: 0
     lengthSpread: 1
@@ -1150,7 +1150,7 @@ MonoBehaviour:
     blendMode: 0
     autoRotate: 0
     flareType: 1
-    modulateByLightColor: 0
+    modulateByLightColor: 1
     isFoldOpened: 0
     distribution: 0
     lengthSpread: 1
@@ -1310,7 +1310,7 @@ MonoBehaviour:
     blendMode: 0
     autoRotate: 0
     flareType: 1
-    modulateByLightColor: 0
+    modulateByLightColor: 1
     isFoldOpened: 0
     distribution: 0
     lengthSpread: 1
@@ -1396,8 +1396,8 @@ MonoBehaviour:
     positionVariation: {x: 1, y: 0}
     scaleVariation: 1
     rotationVariation: 180
-    enableRadialDistortion: 0
-    targetSizeDistortion: {x: 1, y: 1}
+    enableRadialDistortion: 1
+    targetSizeDistortion: {x: 2, y: 2}
     distortionCurve:
       serializedVersion: 2
       m_Curve:
@@ -1422,7 +1422,7 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    distortionRelativeToCenter: 0
+    distortionRelativeToCenter: 1
     m_FallOff: 1
     m_EdgeOffset: 0
     m_SideCount: 6

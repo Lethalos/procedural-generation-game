@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: Hail Storm
   m_EditorClassIdentifier: 
-  weatherTime: {x: 60, y: 120}
+  minWeatherTime: 0.125
+  maxWeatherTime: 0.33333334
   likelihood: 0.255
   forecastNext:
   - {fileID: 11400000, guid: 134d60bbf3db4074599790ce6df65c88, type: 2}
@@ -101,23 +102,11 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  cloudSettings:
-    cumulusCoverage: 2
-    altocumulusCoverage: 0
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 0
-    cirrusCoverage: 0
-    nimbusCoverage: 0
-    nimbusVariation: 0.9
-    nimbusHeightEffect: 1
-    borderHeight: 1
-    borderVariation: 0.9
-    borderEffect: 1
-  fogDensity: 2
   FX:
-  - {fileID: 11400000, guid: b86bbfc054993324eb4d8bcc03dd47fe, type: 2}
-  - {fileID: 11400000, guid: 068ea89a0f76fa74282fa41c20efa872, type: 2}
-  - {fileID: 11400000, guid: d3a2650486fe2ad4bb90df0581bb9590, type: 2}
-  - {fileID: 11400000, guid: a33e70835b20e2c44aefca7ca2087eca, type: 2}
+  - {fileID: 11400000, guid: 37958e75fc835c242a6ab218c3f7c868, type: 2}
   - {fileID: 11400000, guid: 5818af68d3b1bdd47ad057e03bb5f10e, type: 2}
-  - {fileID: 11400000, guid: 13e4ffdca985652489d4908ca0d98fc9, type: 2}
+  - {fileID: 11400000, guid: 15b37cbb30f878c489770528e2780033, type: 2}
+  - {fileID: 11400000, guid: 81d5405a7a2400b468f4feeace096c59, type: 2}
+  - {fileID: 11400000, guid: f1060915b42a4094eb4db8e67b27e8f4, type: 2}
+  - {fileID: 11400000, guid: b86bbfc054993324eb4d8bcc03dd47fe, type: 2}
+  - {fileID: 11400000, guid: f69846c0573b8f34c83c68de190c7d8e, type: 2}

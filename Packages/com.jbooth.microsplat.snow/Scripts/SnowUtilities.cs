@@ -11,7 +11,7 @@ namespace JBooth.MicroSplat
       {
          float snowHeightFade = Mathf.Clamp01((worldHeight - snowMin) / Mathf.Max(snowMax, 0.001f));
          float snowAngleFade = Mathf.Max(0, (snowDotVertex - angleRangeZ) * 6);
-         snowAngleFade = snowAngleFade * (1 - Mathf.Max(0, (snowDotVertex - angleRangeW) * 6));
+         snowAngleFade = Mathf.Clamp01(snowAngleFade * (1 - Mathf.Max(0, (snowDotVertex - angleRangeW) * 6)));
          return Mathf.Clamp01((snowLevel * snowHeightFade * snowAngleFade));
       }
 

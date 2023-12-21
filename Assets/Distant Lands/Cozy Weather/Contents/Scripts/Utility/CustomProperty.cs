@@ -21,7 +21,6 @@ namespace DistantLands.Cozy
         public Gradient gradientVal;
         public float floatVal = 1;
         public AnimationCurve curveVal = new AnimationCurve() { keys = new Keyframe[2] { new Keyframe(0, 1), new Keyframe(1, 1) } };
-        public bool systemContainsProp = true;
 
 
         public void GetValue(out Color color, float time)
@@ -171,22 +170,22 @@ namespace DistantLands.Cozy
 
             EditorGUI.BeginProperty(position, label, property);
 
-            // Rect newPosition = EditorGUI.PrefixLabel(sampleCenter, GUIUtility.GetControlID(FocusType.Keyboard), new GUIContent("Modulate From"));
+            // Rect newPosition = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Keyboard), new GUIContent("Modulate From"));
 
             var indent = EditorGUI.indentLevel;
             // EditorGUI.indentLevel = 0;
             float space = EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             float height = EditorGUIUtility.singleLineHeight;
 
-            var titleRect = new Rect(position.x + 15, position.y, position.width, height);
-            var unitARect = new Rect(position.x, position.y + space, (position.width / 2) - 3, height);
-            var unitBRect = new Rect((position.width / 2) + 75, position.y + space, (position.width / 2), height);
-            var unitCRect = new Rect(position.x + 30, position.y + space * 2, position.width - 30, height);
-            var unitDRect = new Rect(position.x + 30, position.y + space * 3, position.width - 30, height);
-            var unitERect = new Rect(position.x + 30, position.y + space * 4, position.width - 30, height);
+            var titleRect = new Rect(position.x + 30, position.y, position.width, height);
+            var unitARect = new Rect(position.x + 15, position.y + 10 + space, (position.width / 2) - 3, height);
+            var unitBRect = new Rect((position.width / 2) + 15, position.y + 10 + space, (position.width / 2), height);
+            var unitCRect = new Rect(position.x + 30, position.y + 10 + space * 2, position.width - 30, height);
+            var unitDRect = new Rect(position.x + 30, position.y + 10 + space * 3, position.width - 30, height);
+            var unitERect = new Rect(position.x + 30, position.y + 10 + space * 4, position.width - 30, height);
             var source = property.FindPropertyRelative("modulationSource");
             var target = property.FindPropertyRelative("modulationTarget");
-
+            GUI.Box(titleRect, GUIContent.none, EditorStyles.toolbar);
 
             property.FindPropertyRelative("expanded").boolValue = EditorGUI.Foldout(titleRect, property.FindPropertyRelative("expanded").boolValue, GetTitle(property), true);
 
@@ -259,7 +258,7 @@ namespace DistantLands.Cozy
                         if (names.Count > 0)
                             property.FindPropertyRelative("targetVariableName").stringValue = names[EditorGUI.Popup(unitERect, "Material Value Property Name", selected, names.ToArray())];
                         break;
-                    case (MaterialManagerProfile.ModulatedValue.ModulationTarget.terrainLayerColor):
+                    case (MaterialManagerProfile.ModulatedValue.ModulationTarget.terrainLayerColor | MaterialManagerProfile.ModulatedValue.ModulationTarget.terrainLayerTint):
                         EditorGUI.PropertyField(unitDRect, targetLayer);
                         break;
                 }
@@ -302,6 +301,11 @@ namespace DistantLands.Cozy
                         return $"   {property.FindPropertyRelative("targetLayer").objectReferenceValue.name}";
                     else
                         return "   Terrain Layer Color";
+                case (MaterialManagerProfile.ModulatedValue.ModulationTarget.terrainLayerTint):
+                    if (property.FindPropertyRelative("targetLayer").objectReferenceValue)
+                        return $"   {property.FindPropertyRelative("targetLayer").objectReferenceValue.name}";
+                    else
+                        return "   Terrain Layer Tint";
 
             }
 
@@ -316,11 +320,11 @@ namespace DistantLands.Cozy
             if (property.FindPropertyRelative("expanded").boolValue)
                 lineCount += 3.5f;
 
-            return EditorGUIUtility.singleLineHeight * lineCount + EditorGUIUtility.standardVerticalSpacing * 2f * (lineCount - 1);
+            return (property.FindPropertyRelative("expanded").boolValue ? 10 : 0) + EditorGUIUtility.singleLineHeight * lineCount + EditorGUIUtility.standardVerticalSpacing * 2f * (lineCount - 1);
         }
     }
 
-    [UnityEditor.CustomPropertyDrawer(typeof(FormatTimeAttribute))]
+    [UnityEditor.CustomPropertyDrawer(typeof(MeridiemTime))]
     public class FormattedTimeDrawer : PropertyDrawer
     {
 
@@ -346,6 +350,43 @@ namespace DistantLands.Cozy
 
             hours.intValue = Mathf.Clamp(EditorGUI.IntField(hoursRect, GUIContent.none, hours.intValue), 0, 23);
             minutes.intValue = Mathf.Clamp(EditorGUI.IntField(minutesRect, GUIContent.none, minutes.intValue), 0, 59);
+
+            EditorGUI.indentLevel = indent;
+
+            EditorGUI.EndProperty();
+        }
+    }
+
+    [UnityEditor.CustomPropertyDrawer(typeof(MeridiemTimeAttriute))]
+    public class MeridiemTimeDrawer : PropertyDrawer
+    {
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+
+            EditorGUI.BeginProperty(position, label, property);
+
+            position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Keyboard), label);
+
+            var indent = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+            float div = position.width - 50;
+
+            var hoursRect = new Rect(position.x + div, position.y, 22, position.height);
+            var colonRect = new Rect(position.x + div + 22, position.y, 5, position.height);
+            var minutesRect = new Rect(position.x + div + 28, position.y, 22, position.height);
+            var sliderRect = new Rect(position.x, position.y, div - 5, position.height);
+
+            float percentage = property.floatValue;
+            MeridiemTime time = percentage;
+
+            EditorGUI.LabelField(colonRect, ":");
+            EditorGUI.BeginChangeCheck();
+            int hours = Mathf.Clamp(EditorGUI.IntField(hoursRect, GUIContent.none, Mathf.FloorToInt(time.hours)), 0, 24);
+            int minutes = Mathf.Clamp(EditorGUI.IntField(minutesRect, GUIContent.none, Mathf.FloorToInt(time.minutes)), 0, 60);
+            if (EditorGUI.EndChangeCheck())
+                property.floatValue = new MeridiemTime(hours, minutes);
+            if (div > 55)
+                property.floatValue = GUI.HorizontalSlider(sliderRect, property.floatValue, 0, 1);
 
             EditorGUI.indentLevel = indent;
 
@@ -384,9 +425,9 @@ namespace DistantLands.Cozy
 
 
             // if (title != "")
-            //     EditorGUI.PropertyField(sampleCenter, property, GUIContent.none);
+            //     EditorGUI.PropertyField(position, property, GUIContent.none);
             // else
-            //     EditorGUI.PropertyField(sampleCenter, property, new GUIContent(title));
+            //     EditorGUI.PropertyField(position, property, new GUIContent(title));
 
 
             EditorGUI.EndProperty();
@@ -436,6 +477,55 @@ namespace DistantLands.Cozy
         }
     }
 
+    [UnityEditor.CustomPropertyDrawer(typeof(OverrideRangeAttribute))]
+    public class OverrideRangeDrawer : PropertyDrawer
+    {
+
+        OverrideRangeAttribute _attribute;
+        SerializedProperty value;
+        SerializedProperty useOverride;
+
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+
+            useOverride = property.FindPropertyRelative("overrideValue");
+            _attribute = (OverrideRangeAttribute)attribute;
+            EditorGUI.BeginProperty(position, label, property);
+            Rect posA = new Rect(position.x, position.y, position.height, position.height);
+            Rect posB = new Rect(position.x + position.height + 5, position.y, position.width - (position.height + 5), position.height);
+
+            EditorGUI.PropertyField(posA, useOverride, GUIContent.none);
+            EditorGUI.BeginDisabledGroup(!useOverride.boolValue);
+            property.FindPropertyRelative("value").floatValue = EditorGUI.Slider(posB, label, property.FindPropertyRelative("value").floatValue, _attribute.MinValue, _attribute.MaxValue);
+            EditorGUI.EndDisabledGroup();
+
+
+            EditorGUI.EndProperty();
+        }
+    }
+
+    [UnityEditor.CustomPropertyDrawer(typeof(FXProfile.OverrideData))]
+    public class OverrideDrawer : PropertyDrawer
+    {
+        SerializedProperty useOverride;
+
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+
+            useOverride = property.FindPropertyRelative("overrideValue");
+            EditorGUI.BeginProperty(position, label, property);
+            Rect posA = new Rect(position.x, position.y, position.height, position.height);
+            Rect posB = new Rect(position.x + position.height + 5, position.y, position.width - (position.height + 5), position.height);
+
+            EditorGUI.PropertyField(posA, property.FindPropertyRelative("overrideValue"), GUIContent.none);
+            EditorGUI.BeginDisabledGroup(!useOverride.boolValue);
+            EditorGUI.PropertyField(posB, property.FindPropertyRelative("value"), label);
+            EditorGUI.EndDisabledGroup();
+
+            EditorGUI.EndProperty();
+        }
+    }
+
     [UnityEditor.CustomPropertyDrawer(typeof(SetHeightAttribute))]
     public class SetHeightDrawer : PropertyDrawer
     {
@@ -468,7 +558,6 @@ namespace DistantLands.Cozy
 
     }
 
-
     [UnityEditor.CustomPropertyDrawer(typeof(DisplayHorizontallyAttribute))]
     public class DisplayHorizontallyDrawer : PropertyDrawer
     {
@@ -492,7 +581,6 @@ namespace DistantLands.Cozy
         }
 
     }
-
 
     [UnityEditor.CustomPropertyDrawer(typeof(MultiAudioAttribute))]
     public class MultiAudioDrawer : PropertyDrawer
@@ -535,6 +623,7 @@ namespace DistantLands.Cozy
             EditorGUI.EndProperty();
         }
     }
+
     [UnityEditor.CustomPropertyDrawer(typeof(TransitionTimeAttribute))]
     public class TransitionTimeDrawer : PropertyDrawer
     {
@@ -589,17 +678,15 @@ namespace DistantLands.Cozy
         }
     }
 
-    [UnityEditor.CustomPropertyDrawer(typeof(WeightedWeatherAttribute))]
+    [UnityEditor.CustomPropertyDrawer(typeof(WeatherRelationAttribute))]
     public class WeightedWeatherDrawer : PropertyDrawer
     {
-
-
-        WeightedWeatherAttribute _attribute;
+        WeatherRelationAttribute _attribute;
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
 
-            _attribute = (WeightedWeatherAttribute)attribute;
+            _attribute = (WeatherRelationAttribute)attribute;
 
             EditorGUI.BeginProperty(position, label, property);
 
@@ -609,10 +696,6 @@ namespace DistantLands.Cozy
 
             EditorGUI.PropertyField(titleRect, property.FindPropertyRelative("profile"), GUIContent.none);
             EditorGUI.PropertyField(unitRect, property.FindPropertyRelative("weight"), GUIContent.none);
-
-
-
-
 
             EditorGUI.EndProperty();
         }
@@ -669,6 +752,18 @@ namespace DistantLands.Cozy
         }
     }
 
+    public class OverrideRangeAttribute : PropertyAttribute
+    {
+        public float MinValue { get; private set; }
+        public float MaxValue { get; private set; }
+
+        public OverrideRangeAttribute(float minValue, float maxValue)
+        {
+            MinValue = minValue;
+            MaxValue = maxValue;
+        }
+    }
+
     public class HideTitleAttribute : PropertyAttribute
     {
         public string title;
@@ -721,8 +816,6 @@ namespace DistantLands.Cozy
         }
     }
 
-
-
     public class SetHeightAttribute : PropertyAttribute
     {
         public int lines;
@@ -754,6 +847,11 @@ namespace DistantLands.Cozy
 
     }
 
+    public class MeridiemTimeAttriute : PropertyAttribute
+    {
+
+    }
+
     public class ModulatedPropertyAttribute : PropertyAttribute
     {
         public ModulatedPropertyAttribute()
@@ -769,11 +867,11 @@ namespace DistantLands.Cozy
         }
     }
 
-    public class WeightedWeatherAttribute : PropertyAttribute
+    public class WeatherRelationAttribute : PropertyAttribute
     {
 
 
-        public WeightedWeatherAttribute()
+        public WeatherRelationAttribute()
         {
 
 

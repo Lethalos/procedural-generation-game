@@ -3,8 +3,6 @@
 
 
 using DistantLands.Cozy.Data;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -16,7 +14,7 @@ namespace DistantLands.Cozy
     {
 
 
-        public enum TriggerType { setWeather, triggerEvent, setTicks, setDay, setAtmosphere, setAmbience }
+        public enum TriggerType { setWeather, triggerEvent, setTime, setDay, setAtmosphere, setAmbience }
         public enum SetType { setInstantly, transition }
         public enum TriggerState { onEnter, onStay, onExit }
 
@@ -42,7 +40,7 @@ namespace DistantLands.Cozy
         [SerializeField]
         private AmbienceProfile m_AmbienceProfile;
         [SerializeField]
-        private float ticks;
+        private float time;
         [SerializeField]
         private int day;
         [SerializeField]
@@ -75,22 +73,22 @@ namespace DistantLands.Cozy
             switch (m_TriggerType)
             {
                 case (TriggerType.setWeather):
-                    m_CozyWeather.SetWeather(m_WeatherProfile, m_TransitionTime);
+                    // m_CozyWeather.weather.SetWeather(m_WeatherProfile, m_TransitionTime);
                     break;
                 case (TriggerType.triggerEvent):
                     m_Event.Invoke();
                     break;
                 case (TriggerType.setAtmosphere):
-                    m_CozyWeather.ChangeAtmosphere(m_AtmosphereProfile, m_AtmosphereProfile, m_TransitionTime);
+                    m_CozyWeather.atmosphereModule.ChangeAtmosphere(m_AtmosphereProfile, m_AtmosphereProfile, m_TransitionTime);
                     break;
                 case (TriggerType.setDay):
-                    m_CozyWeather.TransitionTime(ticks, day);
+                    m_CozyWeather.timeModule.TransitionTime(time, day);
                     break;
-                case (TriggerType.setTicks):
-                    m_CozyWeather.TransitionTime(ticks, m_CozyWeather.currentDay);
+                case (TriggerType.setTime):
+                    m_CozyWeather.timeModule.TransitionTime(time, m_CozyWeather.timeModule.currentDay);
                     break;
                 case (TriggerType.setAmbience):
-                    m_CozyWeather.GetModule<CozyAmbienceManager>().SetAmbience(m_AmbienceProfile, m_TransitionTime);
+                    m_CozyWeather.GetModule<CozyAmbienceModule>().SetAmbience(m_AmbienceProfile, m_TransitionTime);
                     break;
             }
 
@@ -103,24 +101,24 @@ namespace DistantLands.Cozy
             switch (m_TriggerType)
             {
                 case (TriggerType.setWeather):
-                    m_CozyWeather.currentWeather = m_WeatherProfile;
+                    m_CozyWeather.weatherModule.ecosystem.currentWeather = m_WeatherProfile;
                     break;
                 case (TriggerType.triggerEvent):
                     m_Event.Invoke();
                     break;
                 case (TriggerType.setAtmosphere):
-                    m_CozyWeather.atmosphereProfile = m_AtmosphereProfile;
+                    m_CozyWeather.atmosphereModule.atmosphereProfile = m_AtmosphereProfile;
                     m_CozyWeather.ResetQuality();
                     break;
                 case (TriggerType.setDay):
-                    m_CozyWeather.currentDay = day;
+                    m_CozyWeather.timeModule.currentDay = day;
                     break;
-                case (TriggerType.setTicks):
-                    m_CozyWeather.currentTicks = ticks;
+                case (TriggerType.setTime):
+                    m_CozyWeather.timeModule.currentTime = time;
                     break;
                 case (TriggerType.setAmbience):
-                    if (m_CozyWeather.GetModule<CozyAmbienceManager>())
-                        m_CozyWeather.GetModule<CozyAmbienceManager>().SetAmbience(m_AmbienceProfile, 0);
+                    if (m_CozyWeather.GetModule<CozyAmbienceModule>() != null)
+                        m_CozyWeather.GetModule<CozyAmbienceModule>().SetAmbience(m_AmbienceProfile, 0);
                     break;
             }
 

@@ -30,84 +30,36 @@ namespace DistantLands.Cozy.Data
         public Color sunFilter = Color.white;
         [ColorUsage(false, true)]
         public Color cloudFilter = Color.white;
-        public float weight;
-        CozyWeather weather;
+        CozyWeatherModule weatherModule;
 
-
-        public override void PlayEffect()
+        public override void PlayEffect(float weight)
         {
-            if (!VFXMod)
+
+            if (!weatherSphere)
                 if (InitializeEffect(null) == false)
                     return;
 
-            if (VFXMod.filterManager.isEnabled)
-                weight = 1;
-            else
-                weight = 0;
-            weather.CalculateFilterColors();
-        }
+            weatherModule.filterSaturation = Mathf.Lerp(weatherModule.filterSaturation, filterSaturation, weight);
+            weatherModule.filterValue = Mathf.Lerp(weatherModule.filterValue, filterValue, weight);
+            weatherModule.filterColor = Color.Lerp(weatherModule.filterColor, filterColor, weight);
+            weatherModule.sunFilter = Color.Lerp(weatherModule.sunFilter, sunFilter, weight);
+            weatherModule.cloudFilter = Color.Lerp(weatherModule.cloudFilter, cloudFilter, weight);
 
-        public override void PlayEffect(float i)
-        {
-
-            if (!VFXMod)
-                if (InitializeEffect(null) == false)
-                    return;
-
-            if (i <= 0.03f)
-            {
-                StopEffect();
-                return;
-            }
-
-            if (VFXMod.filterManager.isEnabled)
-                weight = Mathf.Clamp01(transitionTimeModifier.Evaluate(i));
-            else
-                weight = 0;
-
-            weather.CalculateFilterColors();
-        }
-
-        public override void StopEffect()
-        {
-            if (!VFXMod)
-                if (InitializeEffect(null) == false)
-                    return;
-
-            weight = 0;
-            weather.CalculateFilterColors();
         }
 
 
-
-
-
-        public override bool InitializeEffect(VFXModule VFX)
+        public override bool InitializeEffect(CozyWeather weather)
         {
 
-            if (VFX == null)
-                VFX = CozyWeather.instance.VFX;
+            weatherSphere = weather ? weather : CozyWeather.instance;
 
-
-            VFXMod = VFX;
-
-            if (!VFX.filterManager.isEnabled)
-            {
-
+            if (!weatherSphere.weatherModule)
                 return false;
 
-            }
-
-            VFX.weatherSphere.possibleFilters.Add(this);
-            weather = VFX.weatherSphere;
-            StopEffect();
+            weatherModule = weatherSphere.weatherModule;
 
             return true;
 
-        }
-        public override void DeinitializeEffect()
-        {
-            //No further action needed
         }
 
 

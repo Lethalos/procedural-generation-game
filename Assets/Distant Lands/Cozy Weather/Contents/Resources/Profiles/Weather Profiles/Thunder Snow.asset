@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: Thunder Snow
   m_EditorClassIdentifier: 
-  weatherTime: {x: 50, y: 90}
+  minWeatherTime: 0.125
+  maxWeatherTime: 0.33333334
   likelihood: 0.615
   forecastNext:
   - {fileID: 11400000, guid: 134d60bbf3db4074599790ce6df65c88, type: 2}
@@ -96,23 +97,14 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  cloudSettings:
-    cumulusCoverage: 2
-    altocumulusCoverage: 0
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 0
-    cirrusCoverage: 0
-    nimbusCoverage: 0
-    nimbusVariation: 0.9
-    nimbusHeightEffect: 1
-    borderHeight: 1
-    borderVariation: 0.9
-    borderEffect: 1
-  fogDensity: 2
   FX:
+  - {fileID: 11400000, guid: 37958e75fc835c242a6ab218c3f7c868, type: 2}
+  - {fileID: 11400000, guid: 5818af68d3b1bdd47ad057e03bb5f10e, type: 2}
+  - {fileID: 11400000, guid: d2270d056588a394f999d82274e5c507, type: 2}
+  - {fileID: 11400000, guid: 13e4ffdca985652489d4908ca0d98fc9, type: 2}
+  - {fileID: 11400000, guid: f1060915b42a4094eb4db8e67b27e8f4, type: 2}
+  - {fileID: 11400000, guid: 7d6decbb40b057b4db4d61d800c37b31, type: 2}
+  - {fileID: 11400000, guid: 52be23775b73c0b49bb6ccad99a5fe42, type: 2}
+  - {fileID: 11400000, guid: 3ca682fa89b9e784087c74f4b948d1d7, type: 2}
   - {fileID: 11400000, guid: eafca461229da49498f91d6d94010e5b, type: 2}
   - {fileID: 11400000, guid: ca58f4622d4c4954dac92a21699c672d, type: 2}
-  - {fileID: 11400000, guid: d2270d056588a394f999d82274e5c507, type: 2}
-  - {fileID: 11400000, guid: 5818af68d3b1bdd47ad057e03bb5f10e, type: 2}
-  - {fileID: 11400000, guid: 52be23775b73c0b49bb6ccad99a5fe42, type: 2}
-  - {fileID: 11400000, guid: 13e4ffdca985652489d4908ca0d98fc9, type: 2}

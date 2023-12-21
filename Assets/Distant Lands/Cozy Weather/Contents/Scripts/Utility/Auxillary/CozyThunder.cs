@@ -64,4 +64,34 @@ namespace DistantLands.Cozy
 
         }
     }
+#if UNITY_EDITOR
+    [CustomEditor(typeof(CozyThunder))]
+    [CanEditMultipleObjects]
+    public class E_Thunder : Editor
+    {
+        CozyThunder cozythunder;
+
+        void OnEnable()
+        {
+            cozythunder = (CozyThunder)target;
+        }
+
+        public override void OnInspectorGUI()
+        {
+            if (cozythunder == null)
+                if (target)
+                    cozythunder = (CozyThunder)target;
+                else
+                    return;
+
+            serializedObject.Update();
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("m_ThunderSounds"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("m_ThunderDelayRange"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("m_LightIntensity"));
+            EditorGUILayout.Space();
+            serializedObject.ApplyModifiedProperties();
+
+        }
+    }
+#endif
 }

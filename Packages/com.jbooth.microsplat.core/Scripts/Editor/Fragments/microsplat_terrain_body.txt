@@ -1515,10 +1515,6 @@
          ToonWireframe(config.uv, o.Albedo, camDist);
          #endif
 
-        #if _SEETHROUGHSHADER
-            SeethroughShader(o.Albedo, o.Emission, o.Alpha, i.worldPos, o.Normal, i.worldNormal);                   
-        #endif
-
 
          #if _DEBUG_TRAXBUFFER
             ClearAllButAlbedo(o, half3(traxBuffer, 0, 0) * saturate(o.Albedo.z+1));
@@ -1765,10 +1761,8 @@
 
          // On windows, sometimes the shared samplers gets stripped, so we have to do this crap.
          // We sample from the lowest mip, so it shouldn't cost much, but still, I hate this, wtf..
-         float stripVal = saturate(SAMPLE_TEXTURE2D_LOD(_Diffuse, sampler_Diffuse, config.uv0, 11).r + 2);
-         stripVal *= saturate(SAMPLE_TEXTURE2D_LOD(_NormalSAO, sampler_NormalSAO, config.uv0, 11).r + 2);
-         l.Albedo *= stripVal;
-         l.Normal *= stripVal;
+         l.Albedo *= saturate(SAMPLE_TEXTURE2D_LOD(_Diffuse, sampler_Diffuse, config.uv0, 11).r + 2);
+         l.Albedo *= saturate(SAMPLE_TEXTURE2D_LOD(_NormalSAO, sampler_NormalSAO, config.uv0, 11).r + 2);
 
          #if _PROCEDURALTEXTURE
             ProceduralTextureDebugOutput(l, weights, config);

@@ -4,11 +4,11 @@
 
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Audio;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-
-
 
 namespace DistantLands.Cozy.Data
 {
@@ -18,103 +18,59 @@ namespace DistantLands.Cozy.Data
     {
 
         public AudioClip clip;
+        [Tooltip("The audio mixer group that the COZY weather audio FX will use.")]
+        public AudioMixerGroup audioMixer;
         private AudioSource runtimeRef;
         public float maximumVolume = 1;
 
-        public override void PlayEffect()
-        {
-            if (!runtimeRef)
-                if (InitializeEffect(VFXMod) == false)
-                    return;
-
-            if (runtimeRef.transform.parent == null)
-            {
-                runtimeRef.transform.parent = VFXMod.particleManager.parent;
-                runtimeRef.transform.localPosition = Vector3.zero;
-            }
-
-
-            if (!runtimeRef.isPlaying)
-                runtimeRef.Play();
-            runtimeRef.volume = maximumVolume * VFXMod.audioManager.volumeMultiplier;
-
-        }
-
-        public override void PlayEffect(float vol)
+        public override void PlayEffect(float weight)
         {
 
-
             if (!runtimeRef)
-                if (InitializeEffect(VFXMod) == false)
+                if (InitializeEffect(weatherSphere) == false)
                     return;
 
-            if (vol <= 0.03f)
+            if (weight == 0)
             {
-                StopEffect();
+                runtimeRef.volume = 0;
+                runtimeRef.Stop();
                 return;
             }
 
-            if (runtimeRef.transform.parent == null)
-            {
-                runtimeRef.transform.parent = VFXMod.particleManager.parent;
-                runtimeRef.transform.localPosition = Vector3.zero;
-            }
 
             if (!runtimeRef.isPlaying && runtimeRef.isActiveAndEnabled)
                 runtimeRef.Play();
 
-            runtimeRef.volume = Mathf.Clamp01(transitionTimeModifier.Evaluate(vol)) * maximumVolume * VFXMod.audioManager.volumeMultiplier;
+            runtimeRef.volume = maximumVolume * transitionTimeModifier.Evaluate(weight);
 
         }
 
-        public override void StopEffect()
+        public override bool InitializeEffect(CozyWeather weather)
         {
-            if (!runtimeRef)
-                return;
-
-            if (runtimeRef.isPlaying)
-                runtimeRef.Stop();
-            runtimeRef.volume = 0;
-
-        }
-
-        public override bool InitializeEffect(VFXModule VFX)
-        {
-
-            if (VFX == null)
-                VFX = CozyWeather.instance.VFX;
-
-            VFXMod = VFX;
-
-            if (!VFX.audioManager.isEnabled)
-            {
-
+            if (!Application.isPlaying)
                 return false;
 
-            }
+            base.InitializeEffect(weather);
 
             if (runtimeRef == null)
             {
+                runtimeRef = weather.GetFXRuntimeRef<AudioSource>(name);
+                if (runtimeRef)
+                    return true;
+
                 runtimeRef = new GameObject().AddComponent<AudioSource>();
 
                 runtimeRef.gameObject.name = name;
-                runtimeRef.transform.parent = VFX.audioManager.parent;
+                runtimeRef.transform.parent = weather.audioFXParent;
+                runtimeRef.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
                 runtimeRef.clip = clip;
-                runtimeRef.outputAudioMixerGroup = VFX.audioManager.weatherFXMixer;
+                runtimeRef.outputAudioMixerGroup = audioMixer;
+                runtimeRef.playOnAwake = false;
                 runtimeRef.volume = 0;
                 runtimeRef.loop = true;
             }
-            
+
             return true;
-
-        }
-
-        public override void DeinitializeEffect()
-        {
-
-            if (runtimeRef)
-                Destroy(runtimeRef.gameObject);
-
         }
     }
 
@@ -135,6 +91,7 @@ namespace DistantLands.Cozy.Data
             serializedObject.Update();
 
             EditorGUILayout.PropertyField(serializedObject.FindProperty("clip"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("audioMixer"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("maximumVolume"));
             EditorGUILayout.Space();
             EditorGUILayout.PropertyField(serializedObject.FindProperty("transitionTimeModifier"));
@@ -150,12 +107,14 @@ namespace DistantLands.Cozy.Data
             var propPosA = new Rect(pos.x, pos.y + space, pos.width, EditorGUIUtility.singleLineHeight);
             var propPosB = new Rect(pos.x, pos.y + space * 2, pos.width, EditorGUIUtility.singleLineHeight);
 
-            var propPosD = new Rect(pos.x, pos.y + space * 3, pos.width, EditorGUIUtility.singleLineHeight);
+            var propPosC = new Rect(pos.x, pos.y + space * 3, pos.width, EditorGUIUtility.singleLineHeight);
+            var propPosD = new Rect(pos.x, pos.y + space * 4, pos.width, EditorGUIUtility.singleLineHeight);
 
             serializedObject.Update();
 
             EditorGUI.PropertyField(propPosA, serializedObject.FindProperty("clip"));
-            EditorGUI.PropertyField(propPosB, serializedObject.FindProperty("maximumVolume"));
+            EditorGUI.PropertyField(propPosB, serializedObject.FindProperty("audioMixer"));
+            EditorGUI.PropertyField(propPosC, serializedObject.FindProperty("maximumVolume"));
             EditorGUI.PropertyField(propPosD, serializedObject.FindProperty("transitionTimeModifier"));
 
             serializedObject.ApplyModifiedProperties();
@@ -164,7 +123,7 @@ namespace DistantLands.Cozy.Data
         public override float GetLineHeight()
         {
 
-            return 3;
+            return 4;
 
         }
 

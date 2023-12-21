@@ -41,15 +41,29 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f161b3af7360fc043927736dde8f5c42, type: 2}
   - {fileID: 11400000, guid: 971a290a51fcdf54f93efbe42a8e86a7, type: 2}
   - {fileID: 11400000, guid: 06463e4286524d6499365570b36216aa, type: 2}
-  initialProfile: {fileID: 11400000, guid: e2fbee6f21ca32740a76a387cf2a0abc, type: 2}
+  initialProfile: {fileID: 11400000, guid: 48908a08bbd076e4182bc3ca961b9c34, type: 2}
   initialForecast:
   - profile: {fileID: 11400000, guid: ae94c1a397a01e442a11e8b23ebb1cef, type: 2}
-    weatherProfileDuration: 10
-    startTicks: 0
-    endTicks: 0
+    startTime:
+      hours: 0
+      minutes: 0
+      seconds: 0
+      milliseconds: 0
+    endTime:
+      hours: 0
+      minutes: 0
+      seconds: 0
+      milliseconds: 0
   - profile: {fileID: 11400000, guid: 94bbf17d66f5c6b4ebcd9189ba34367d, type: 2}
-    weatherProfileDuration: 100
-    startTicks: 0
-    endTicks: 0
+    startTime:
+      hours: 0
+      minutes: 0
+      seconds: 0
+      milliseconds: 0
+    endTime:
+      hours: 0
+      minutes: 0
+      seconds: 0
+      milliseconds: 0
   startWeatherWith: 1
-  forecastLength: 10
+  forecastLength: 15

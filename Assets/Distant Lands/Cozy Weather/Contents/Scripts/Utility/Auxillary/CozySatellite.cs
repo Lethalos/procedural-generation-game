@@ -39,7 +39,7 @@ namespace DistantLands.Cozy
         {
 
             m_Satellite.localEulerAngles = m_Satellite.localEulerAngles + Vector3.up * Time.deltaTime * satelliteRotateSpeed;
-            transform.localEulerAngles = new Vector3(-((m_WeatherManager.GetCurrentDayPercentage() * 360) - 90 + orbitOffset), satelliteDirection, 0);
+            transform.localEulerAngles = new Vector3(-((m_WeatherManager.timeModule.currentTime * 360) - 90 + orbitOffset), satelliteDirection, 0);
 
 
         }

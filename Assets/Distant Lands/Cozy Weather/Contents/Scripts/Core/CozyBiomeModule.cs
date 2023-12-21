@@ -8,31 +8,25 @@ using UnityEditor;
 
 namespace DistantLands.Cozy
 {
-    public abstract class CozyBiomeModule : MonoBehaviour
+    public interface ICozyBiomeModule
     {
 
-        public CozyBiome biome;
         public abstract void AddBiome();
         public abstract void RemoveBiome();
-
+        public abstract void UpdateBiomeModule();
         public abstract bool CheckBiome();
+        public abstract void ComputeBiomeWeights();
+        public bool isBiomeModule { get; set; }
 
     }
 
 #if UNITY_EDITOR
-    [CustomEditor(typeof(CozyBiomeModule))]
-    [CanEditMultipleObjects]
-    public abstract class E_BiomeModule : Editor
+    public interface E_BiomeModule
     {
 
-        public abstract void DrawReports();
+        public abstract void DrawBiomeReports();
 
-        public override void OnInspectorGUI()
-        {
-            
-        }
-
-        public abstract void DrawInlineUI(GUIStyle foldoutStyle);
+        public abstract void DrawInlineBiomeUI();
 
     }
 #endif

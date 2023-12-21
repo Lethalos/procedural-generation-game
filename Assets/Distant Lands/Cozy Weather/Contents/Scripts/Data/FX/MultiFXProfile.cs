@@ -27,73 +27,29 @@ namespace DistantLands.Cozy.Data
         [MultiAudio]
         public List<MultiFXType> multiFX;
 
-        public override void PlayEffect()
-        {
-            if (weather == null)
-                weather = CozyWeather.instance;
-
-            foreach (MultiFXType i in multiFX)
-            {
-                i.FX.PlayEffect();
-            }
-
-        }
         public override void PlayEffect(float weight)
         {
 
             if (weather == null)
                 weather = CozyWeather.instance;
 
-
-            if (weight <= 0.03f)
-            {
-                StopEffect();
-                return;
-            }
-
             foreach (MultiFXType i in multiFX)
             {
-                i.FX.PlayEffect(i.intensityCurve.Evaluate(weather.GetCurrentDayPercentage()) * weight);
+                i.FX.PlayEffect(i.intensityCurve.Evaluate(weather.timeModule.currentTime) * weight);
             }
-
         }
 
-        public override void StopEffect()
+        public override bool InitializeEffect(CozyWeather weather)
         {
             if (weather == null)
                 weather = CozyWeather.instance;
 
             foreach (MultiFXType i in multiFX)
             {
-                i.FX.StopEffect();
-            }
-
-
-        }
-
-        public override bool InitializeEffect(VFXModule VFX)
-        {
-
-            if (VFX == null)
-                VFX = CozyWeather.instance.VFX;
-
-            VFXMod = VFX;
-
-            weather = VFX.weatherSphere;
-
-            foreach (MultiFXType i in multiFX)
-            {
-                i.FX.InitializeEffect(VFX);
+                i.FX.InitializeEffect(weather);
             }
 
             return true;
-        }
-        public override void DeinitializeEffect()
-        {
-            foreach (MultiFXType i in multiFX)
-            {
-                i.FX.DeinitializeEffect();
-            }
         }
     }
 

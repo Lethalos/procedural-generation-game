@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -42,8 +42,10 @@ namespace DistantLands.Cozy
 
 
         // Start is called before the first frame update
-        private void OnEnable()
+        public override void InitializeModule()
         {
+            base.InitializeModule();
+            
             if (GetComponent<CozyWeather>())
             {
 
@@ -53,7 +55,6 @@ namespace DistantLands.Cozy
                 return;
 
             }
-            SetupModule();
             if (updateFrequency == UpdateFrequency.onAwake)
             {
                 UpdateShaderProperties();
@@ -76,42 +77,42 @@ namespace DistantLands.Cozy
         public void UpdateShaderProperties()
         {
 
-            if (weatherSphere.cozyMaterials)
+            if (weatherSphere.climateModule)
             {
                 if (updateSnow)
                 {
-                    Shader.SetGlobalFloat(GlobalSnowLevel, weatherSphere.cozyMaterials.snowAmount);
+                    Shader.SetGlobalFloat(GlobalSnowLevel, weatherSphere.climateModule.snowAmount);
                 }
                 if (updateWetness)
                 {
-                    float currentWetness = Mathf.Clamp(weatherSphere.cozyMaterials.wetness, minWetness, maxWetness);
+                    float currentWetness = Mathf.Clamp(weatherSphere.climateModule.wetness, minWetness, maxWetness);
                     Shader.SetGlobalVector(GlobalWetnessParams, new Vector2(minWetness, currentWetness));
                 }
                 if (updatePuddles)
                 {
-                    Shader.SetGlobalFloat(GlobalPuddleParams, weatherSphere.cozyMaterials.wetness);
+                    Shader.SetGlobalFloat(GlobalPuddleParams, weatherSphere.climateModule.wetness);
                 }
                 if (updateRainRipples)
                 {
-                    Shader.SetGlobalFloat(GlobalRainIntensity, weatherSphere.cozyMaterials.wetness);
+                    Shader.SetGlobalFloat(GlobalRainIntensity, weatherSphere.climateModule.wetness);
                 }
                 if (updateStreams)
                 {
-                    Shader.SetGlobalFloat(GlobalStreamMax, weatherSphere.cozyMaterials.wetness);
+                    Shader.SetGlobalFloat(GlobalStreamMax, weatherSphere.climateModule.wetness);
                 }
             }
 
-            if (weatherSphere.VFX)
-            {
-                if (updateWindStrength)
-                {
-                    Shader.SetGlobalFloat(GlobalWindParticulateStrength, weatherSphere.VFX.windManager.windSpeed);
-                }
-                if (updateSnow && updateWindStrength)
-                {
-                    Shader.SetGlobalFloat(GlobalSnowParticulateStrength, weatherSphere.VFX.windManager.windSpeed);
-                }
-            }
+            // if (weatherSphere.vfxModule)
+            // {
+            //     if (updateWindStrength)
+            //     {
+            //         Shader.SetGlobalFloat(GlobalWindParticulateStrength, weatherSphere.vfxModule.windManager.windSpeed);
+            //     }
+            //     if (updateSnow && updateWindStrength)
+            //     {
+            //         Shader.SetGlobalFloat(GlobalSnowParticulateStrength, weatherSphere.vfxModule.windManager.windSpeed);
+            //     }
+            // }
         }
     }
 
@@ -132,8 +133,13 @@ namespace DistantLands.Cozy
         public override GUIContent GetGUIContent()
         {
 
-            return new GUIContent("    MicroSplat Control", (Texture)Resources.Load("Integration"), "Links the COZY system with MicroSplat by Jason Booth.");
+            return new GUIContent("    MicroSplat", (Texture)Resources.Load("Integration"), "Links the COZY system with MicroSplat by Jason Booth.");
 
+        }
+        
+        public override void OpenDocumentationURL()
+        {
+            Application.OpenURL("https://distant-lands.gitbook.io/cozy-stylized-weather-documentation/how-it-works/modules/microsplat-module");
         }
 
         public override void DisplayInCozyWindow()

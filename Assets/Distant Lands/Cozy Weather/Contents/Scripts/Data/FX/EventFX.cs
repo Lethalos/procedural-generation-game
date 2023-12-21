@@ -1,15 +1,9 @@
 // Distant Lands 2022.
 
-
-
-using System.Collections.Generic;
 using UnityEngine;
-using System.Collections;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-
-
 
 namespace DistantLands.Cozy.Data
 {
@@ -18,88 +12,68 @@ namespace DistantLands.Cozy.Data
     public class EventFX : FXProfile
     {
 
-        public CozyEventManager events;
-        public bool playing;
+        public CozyEventModule events;
 
+        public bool isPlaying;
         public delegate void OnCall();
         public event OnCall onCall;
         public void RaiseOnCall()
         {
-            if (onCall != null)
-                onCall();
+            onCall?.Invoke();
         }
         public delegate void OnEnd();
         public event OnEnd onEnd;
         public void RaiseOnEnd()
         {
-            if (onEnd != null)
-                onEnd();
+            onEnd?.Invoke();
         }
 
-        public override void PlayEffect()
+        public void PlayEffect()
         {
-
-            if (!playing)
+            if (!isPlaying)
             {
-                playing = true;
-                if (onCall != null)
-                onCall.Invoke();
+                isPlaying = true;
+                onCall?.Invoke();
             }
         }
 
-        public override void PlayEffect(float intensity)
+        public override void PlayEffect(float weight)
         {
-
-            if (intensity > 0.5f)
+            if (weight > 0.5f)
                 PlayEffect();
             else
                 StopEffect();
-
         }
 
-        public override void StopEffect()
+        public void StopEffect()
         {
-
-            if (playing)
+            if (isPlaying)
             {
-                playing = false;
-                if (onEnd != null)
-                onEnd.Invoke();
+                isPlaying = false;
+                onEnd?.Invoke();
             }
         }
 
-        public override bool InitializeEffect(VFXModule VFX)
+        public override bool InitializeEffect(CozyWeather weather)
         {
 
-            if (events == null)
-                events = CozyWeather.instance.GetModule<CozyEventManager>();
+            base.InitializeEffect(weather);
 
-            VFXMod = VFX;
+            if (!weatherSphere.GetModule<CozyEventModule>())
+                return false;
 
-
+            events = weatherSphere.GetModule<CozyEventModule>();
             return true;
 
         }
-
-        public override void DeinitializeEffect()
-        {
-            //No further action needed
-        }
-
     }
+
 
 #if UNITY_EDITOR
     [CustomEditor(typeof(EventFX))]
     [CanEditMultipleObjects]
     public class E_EventFX : E_FXProfile
     {
-
-
-        void OnEnable()
-        {
-
-        }
-
         public override void OnInspectorGUI()
         {
             serializedObject.Update();

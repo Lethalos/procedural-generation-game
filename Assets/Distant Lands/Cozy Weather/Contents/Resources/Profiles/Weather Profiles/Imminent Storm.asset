@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc9e8ccf7e1f314da24a604c1a11094, type: 3}
   m_Name: Imminent Storm
   m_EditorClassIdentifier: 
-  weatherTime: {x: 10, y: 30}
+  minWeatherTime: 0.041666668
+  maxWeatherTime: 0.125
   likelihood: 1
   forecastNext:
   - {fileID: 11400000, guid: fea1195d94f23fb49aec172623060b27, type: 2}
@@ -25,19 +26,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cc15965868141a44cb0997b3674e317a, type: 2}
   forecastModifierMethod: 0
   chances: []
-  cloudSettings:
-    cumulusCoverage: 0.85
-    altocumulusCoverage: 0
-    chemtrailCoverage: 0
-    cirrostratusCoverage: 0
-    cirrusCoverage: 0
-    nimbusCoverage: 1.78
-    nimbusVariation: 0.819
-    nimbusHeightEffect: 1
-    borderHeight: 0.649
-    borderVariation: 0.9
-    borderEffect: 1
-  fogDensity: 1
   FX:
-  - {fileID: 11400000, guid: 3ca682fa89b9e784087c74f4b948d1d7, type: 2}
+  - {fileID: 11400000, guid: 6c47c4436d17880469b55c6e5ba5a6e9, type: 2}
   - {fileID: 11400000, guid: 7257577dfb019ed4685ab1e846b98e9e, type: 2}
+  - {fileID: 11400000, guid: 8aa234e65cf012b448367af9914cbe6f, type: 2}
+  - {fileID: 11400000, guid: 002d6597342259046bb52e516c09671a, type: 2}
+  - {fileID: 11400000, guid: 3ca682fa89b9e784087c74f4b948d1d7, type: 2}

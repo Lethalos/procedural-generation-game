@@ -3,6 +3,8 @@
 
 
 using UnityEngine;
+using System.Collections.Generic;
+using UnityEngine.Serialization;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -19,78 +21,73 @@ namespace DistantLands.Cozy.Data
 
 
         [Tooltip("The global temprature during the year. the x-axis is the current day over the days in the year and the y axis is the temprature in farenheit.")]
-        public AnimationCurve tempratureOverYear;
+        [FormerlySerializedAs("tempratureOverYear")]
+        public AnimationCurve temperatureOverYear;
         [Tooltip("The global precipitation during the year. the x-axis is the current day over the days in the year and the y axis is the precipitation.")]
-        public AnimationCurve precipitationOverYear;
+        public AnimationCurve humidityOverYear;
         [Tooltip("The local temprature during the day. the x-axis is the current ticks over 360 and the y axis is the temprature change in farenheit from the global temprature.")]
-        public AnimationCurve tempratureOverDay;
+        [FormerlySerializedAs("tempratureOverDay")]
+        public AnimationCurve temperatureOverDay;
         [Tooltip("The local precipitation during the day. the x-axis is the current ticks over 360 and the y axis is the precipitation change from the global precipitation.")]
-        public AnimationCurve precipitationOverDay;
-
+        public AnimationCurve humidityOverDay;
 
         [Tooltip("Adds an offset to the global temprature. Useful for adding biomes or climate change by location or elevation")]
-        public float tempratureFilter;
+        public float temperatureFilter;
         [Tooltip("Adds an offset to the global precipitation. Useful for adding biomes or climate change by location or elevation")]
-        public float precipitationFilter;
+        public float humidityFilter;
 
-        public float GetTemperature(bool celsius)
+        public float GetTemperature()
         {
 
             CozyWeather weather = CozyWeather.instance;
 
-            float i = (tempratureOverYear.Evaluate(weather.yearPercentage) * tempratureOverDay.Evaluate(weather.GetCurrentDayPercentage())) + tempratureFilter;
-
-            if (celsius)
-                i = (i - 32) * 5 / 9;
+            float i = (temperatureOverYear.Evaluate(weather.yearPercentage) * temperatureOverDay.Evaluate(weather.modifiedDayPercentage)) + temperatureFilter;
 
             return i;
         }
-        public float GetTemperature(bool celsius, CozyWeather weather)
+        public float GetTemperature(CozyWeather weather)
         {
 
-            float i = (tempratureOverYear.Evaluate(weather.yearPercentage) * tempratureOverDay.Evaluate(weather.GetCurrentDayPercentage())) + tempratureFilter;
+            float i = (temperatureOverYear.Evaluate(weather.yearPercentage) * temperatureOverDay.Evaluate(weather.modifiedDayPercentage)) + temperatureFilter;
 
-            if (celsius)
-                i = (i - 32) * 5 / 9;
 
             return i;
         }
-
-        public float GetTemperature(bool celsius, CozyWeather weather, float inTicks)
+        public float GetTemperature(CozyWeather weather, float inTime)
         {
 
-            float nextDays = inTicks / weather.perennialProfile.ticksPerDay;
+            if (!weather.timeModule)
+                return GetTemperature(weather);
 
-            float i = (tempratureOverYear.Evaluate((weather.DayAndTime() + nextDays) / weather.GetDaysPerYear()) * tempratureOverDay.Evaluate(weather.GetCurrentDayPercentage())) + tempratureFilter;
+            float nextDays = inTime;
 
-            if (celsius)
-                i = (i - 32) * 5 / 9;
+            float i = (temperatureOverYear.Evaluate((weather.timeModule.DayAndTime() + nextDays) / weather.timeModule.GetDaysPerYear()) * temperatureOverDay.Evaluate(weather.timeModule.modifiedDayPercentage)) + temperatureFilter;
 
             return i;
         }
-
         public float GetHumidity()
         {
-
             CozyWeather weather = CozyWeather.instance;
-
-            float i = (precipitationOverYear.Evaluate(weather.yearPercentage) * precipitationOverDay.Evaluate(weather.GetCurrentDayPercentage())) + precipitationFilter;
+            float i = (humidityOverYear.Evaluate(weather.yearPercentage) * humidityOverDay.Evaluate(weather.modifiedDayPercentage)) + humidityFilter;
 
             return i;
         }
         public float GetHumidity(CozyWeather weather)
         {
-
-            float i = (precipitationOverYear.Evaluate(weather.yearPercentage) * precipitationOverDay.Evaluate(weather.GetCurrentDayPercentage())) + precipitationFilter;
+            if (weather == null)
+                weather = CozyWeather.instance;
+                
+            float i = (humidityOverYear.Evaluate(weather.yearPercentage) * humidityOverDay.Evaluate(weather.modifiedDayPercentage)) + humidityFilter;
 
             return i;
         }
-
-        public float GetHumidity(CozyWeather weather, float inTicks)
+        public float GetHumidity(CozyWeather weather, float inTime)
         {
-            float nextDays = inTicks / weather.perennialProfile.ticksPerDay;
+            if (!weather.timeModule)
+                return GetHumidity(weather);
 
-            float i = (precipitationOverYear.Evaluate((weather.DayAndTime() + nextDays) / weather.perennialProfile.daysPerYear) * precipitationOverDay.Evaluate(weather.GetCurrentDayPercentage())) + precipitationFilter;
+            float nextDays = inTime;
+            float i = (humidityOverYear.Evaluate((weather.timeModule.DayAndTime() + nextDays) / weather.perennialProfile.daysPerYear) * humidityOverDay.Evaluate(weather.timeModule.modifiedDayPercentage)) + humidityFilter;
 
             return i;
         }
@@ -114,12 +111,12 @@ namespace DistantLands.Cozy.Data
         void OnEnable()
         {
 
-            tempratureOverYear = serializedObject.FindProperty("tempratureOverYear");
-            precipitationOverYear = serializedObject.FindProperty("precipitationOverYear");
-            tempratureOverDay = serializedObject.FindProperty("tempratureOverDay");
-            precipitationOverDay = serializedObject.FindProperty("precipitationOverDay");
-            tempratureFilter = serializedObject.FindProperty("tempratureFilter");
-            precipitationFilter = serializedObject.FindProperty("precipitationFilter");
+            tempratureOverYear = serializedObject.FindProperty("temperatureOverYear");
+            precipitationOverYear = serializedObject.FindProperty("humidityOverYear");
+            tempratureOverDay = serializedObject.FindProperty("temperatureOverDay");
+            precipitationOverDay = serializedObject.FindProperty("humidityOverDay");
+            tempratureFilter = serializedObject.FindProperty("temperatureFilter");
+            precipitationFilter = serializedObject.FindProperty("humidityFilter");
             prof = (ClimateProfile)target;
 
         }
