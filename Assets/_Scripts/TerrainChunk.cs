@@ -50,13 +50,12 @@ public class TerrainChunk
         meshCollider = meshObject.AddComponent<MeshCollider>();
 
         // Microsplat
-        MicroSplatMeshTerrain microSplatMeshTerrain =  meshObject.AddComponent<MicroSplatMeshTerrain>();
+        MicroSplatMeshTerrain microSplatMeshTerrain = meshObject.AddComponent<MicroSplatMeshTerrain>();
         microSplatMeshTerrain.templateMaterial = material;
         microSplatMeshTerrain.meshTerrains = new MeshRenderer[1];
         microSplatMeshTerrain.meshTerrains[0] = meshRenderer;
         microSplatMeshTerrain.controlTextures = new Texture2D[1];
         microSplatMeshTerrain.controlTextures[0] = splatTexture;
-
         meshRenderer.material = material;
 
         meshObject.transform.position = new Vector3(position.x, 0, position.y);
@@ -75,7 +74,6 @@ public class TerrainChunk
         }
 
         maxViewDst = detailLevels[detailLevels.Length - 1].visibleDstThreshold;
-
     }
 
     private HeightMap GenerateHeightMap()
@@ -136,6 +134,9 @@ public class TerrainChunk
                     {
                         previousLODIndex = lodIndex;
                         meshFilter.mesh = lodMesh.mesh;
+                        //Debug.Log("Load: " + meshObject.GetComponent<MeshFilter>().mesh.vertexCount); delete
+                        if (meshObject.GetComponent<FlatRegionAnalyzer>() == null) meshObject.AddComponent<FlatRegionAnalyzer>();
+                        //meshObject.AddComponent<MeshCoordCalculator>();
                     }
                     else if (!lodMesh.hasRequestedMesh)
                     {
