@@ -79,31 +79,23 @@ public partial class MicroSplatShaderGUI : ShaderGUI
       name = name.Substring (0, name.IndexOf ("."));
       name = name.Replace("/", "");
 
-;
       string [] keywords = new string [0];
-      var pipeline = MicroSplatUtilities.DetectPipeline ();
-      if (pipeline == MicroSplatUtilities.PipelineType.HDPipeline)
-      {
-         System.Array.Resize (ref keywords, keywords.Length + 2);
-         keywords [keywords.Length - 2] = "_MSRENDERLOOP_UNITYHD";
-         keywords [keywords.Length - 1] = "_MSRENDERLOOP_UNITYHDRP2020";
-         keywords[keywords.Length - 1] = "_MSRENDERLOOP_UNITYHDRP2021";
-      }
-      else if (pipeline == MicroSplatUtilities.PipelineType.UniversalPipeline)
-      {
-         System.Array.Resize (ref keywords, keywords.Length + 2);
-         keywords [keywords.Length - 2] = "_MSRENDERLOOP_UNITYLD";
-         keywords [keywords.Length - 1] = "_MSRENDERLOOP_UNITYURP2020";
-         keywords [keywords.Length - 1] = "_MSRENDERLOOP_UNITYURP2021";
-      }
-
-
       MicroSplatCompiler compiler = new MicroSplatCompiler ();
       compiler.Init ();
       string ret = compiler.Compile (keywords, name, null);
       System.IO.File.WriteAllText (path, ret);
       AssetDatabase.Refresh ();
       return AssetDatabase.LoadAssetAtPath<Shader> (path);
+   }
+
+   public static string ReplaceLastOccurrence(string source, string find, string replace)
+   {
+      int place = source.LastIndexOf(find);
+
+      if (place == -1)
+         return source;
+
+      return source.Remove(place, find.Length).Insert(place, replace);
    }
 
    public static Material NewShaderAndMaterial (string path, string name, string[] keywords = null)
@@ -117,7 +109,7 @@ public partial class MicroSplatShaderGUI : ShaderGUI
          keywords [keywords.Length - 1] = "_BRANCHSAMPLESARG";
       }
       string shaderPath = AssetDatabase.GenerateUniqueAssetPath (path + "/MicroSplat.shader");
-      string shaderBasePath = shaderPath.Replace (".shader", "_Base.shader");
+      string shaderBasePath = ReplaceLastOccurrence(shaderPath, ".shader", "_Base.shader");
       string matPath = AssetDatabase.GenerateUniqueAssetPath (path + "/MicroSplat.mat");
 
       shaderPath = shaderPath.Replace ("//", "/");
@@ -131,19 +123,6 @@ public partial class MicroSplatShaderGUI : ShaderGUI
       {
          keywords = new string[0];
       }
-
-      var pipeline = MicroSplatUtilities.DetectPipeline ();
-      if (pipeline == MicroSplatUtilities.PipelineType.HDPipeline)
-      {
-         System.Array.Resize (ref keywords, keywords.Length + 1);
-         keywords [keywords.Length - 1] = "_MSRENDERLOOP_UNITYHD";
-      }
-      else if (pipeline == MicroSplatUtilities.PipelineType.UniversalPipeline)
-      {
-         System.Array.Resize (ref keywords, keywords.Length + 1);
-         keywords [keywords.Length - 1] = "_MSRENDERLOOP_UNITYLD";
-      }
-
 
       string baseName = "Hidden/MicroSplat/" + name + "_Base";
 
@@ -326,7 +305,27 @@ public partial class MicroSplatShaderGUI : ShaderGUI
          }
       }
 
+      public static void AddPipelineKeywords(ref string[] keywords)
+      {
+          var pipeline = MicroSplatUtilities.DetectPipeline();
 
+          if (pipeline == MicroSplatUtilities.PipelineType.HDPipeline)
+         {
+            System.Array.Resize(ref keywords, keywords.Length + 4);
+            keywords[keywords.Length - 4] = "_MSRENDERLOOP_UNITYHD";
+            keywords[keywords.Length - 3] = "_MSRENDERLOOP_UNITYHDRP2020";
+            keywords[keywords.Length - 2] = "_MSRENDERLOOP_UNITYHDRP2021";
+            keywords[keywords.Length - 1] = "_MSRENDERLOOP_UNITYHDRP2022";
+         }
+         else if (pipeline == MicroSplatUtilities.PipelineType.UniversalPipeline)
+         {
+            System.Array.Resize(ref keywords, keywords.Length + 4);
+            keywords[keywords.Length - 4] = "_MSRENDERLOOP_UNITYLD";
+            keywords[keywords.Length - 3] = "_MSRENDERLOOP_UNITYURP2020";
+            keywords[keywords.Length - 2] = "_MSRENDERLOOP_UNITYURP2021";
+            keywords[keywords.Length - 1] = "_MSRENDERLOOP_UNITYURP2022";
+         }
+      }
 
       public void WriteDefines (string[] features, StringBuilder sb)
       {
@@ -483,7 +482,7 @@ public partial class MicroSplatShaderGUI : ShaderGUI
          {
             if (availableRenderLoops [i].GetRenderLoopKeyword() == keyword)
             {
-               
+
                renderLoop = availableRenderLoops [i];
             }
          }
@@ -509,21 +508,24 @@ public partial class MicroSplatShaderGUI : ShaderGUI
                }
             }
 
-            // TODO: this would be better if we asked the render loop if it is in the feature list, but
-            // would require a change to interface, so wait until we have a version bump.
-            SetPreferedRenderLoopByName (features, "_MSRENDERLOOP_UNITYLD");
-            SetPreferedRenderLoopByName (features, "_MSRENDERLOOP_UNITYHD");
-#if UNITY_2021_2_OR_NEWER
+            AddPipelineKeywords(ref features);
+                // TODO: this would be better if we asked the render loop if it is in the feature list, but
+                // would require a change to interface, so wait until we have a version bump.
+#if UNITY_2022_2_OR_NEWER
+            SetPreferedRenderLoopByName(features, "_MSRENDERLOOP_UNITYHDRP2022");
+            SetPreferedRenderLoopByName(features, "_MSRENDERLOOP_UNITYURP2022");
+#elif UNITY_2021_2_OR_NEWER
             SetPreferedRenderLoopByName(features, "_MSRENDERLOOP_UNITYHDRP2021");
-            SetPreferedRenderLoopByName(features, "_MSRENDERLOOP_UNITYURP2021");
-#elif UNITY_2021_1_OR_NEWER
             SetPreferedRenderLoopByName(features, "_MSRENDERLOOP_UNITYURP2021");
 #elif UNITY_2020_2_OR_NEWER
             SetPreferedRenderLoopByName (features, "_MSRENDERLOOP_UNITYURP2020");
             SetPreferedRenderLoopByName (features, "_MSRENDERLOOP_UNITYHDRP2020");
+#else
+            SetPreferedRenderLoopByName (features, "_MSRENDERLOOP_UNITYLD");
+            SetPreferedRenderLoopByName (features, "_MSRENDERLOOP_UNITYHD");
 #endif
 
-            for (int i = 0; i < extensions.Count; ++i)
+                for (int i = 0; i < extensions.Count; ++i)
             {
                var ext = extensions [i];
                ext.Unpack (features);
@@ -602,6 +604,7 @@ public partial class MicroSplatShaderGUI : ShaderGUI
             string[] oldKeywords = new string[keywords.keywords.Count];
             System.Array.Copy (keywords.keywords.ToArray (), oldKeywords, keywords.keywords.Count);
             keywords.DisableKeyword ("_TESSDISTANCE");
+            keywords.DisableKeyword("_TESSEDGE");
             keywords.DisableKeyword ("_POM");
             keywords.DisableKeyword ("_PARALLAX");
             keywords.DisableKeyword ("_DETAILNOISE");
@@ -609,8 +612,8 @@ public partial class MicroSplatShaderGUI : ShaderGUI
 
             string fallback = Compile (keywords.keywords.ToArray (), baseName);
             keywords.keywords = new List<string> (oldKeywords);
-            string fallbackPath = path.Replace (".shader", "_Base.shader");
-            fallbackPath = fallbackPath.Replace(".surfshader", "_Base.surfshader");
+            string fallbackPath = ReplaceLastOccurrence(path, ".shader", "_Base.shader");
+            fallbackPath = ReplaceLastOccurrence(fallbackPath, ".surfshader", "_Base.surfshader");
             MicroSplatUtilities.Checkout (fallbackPath);
             System.IO.File.WriteAllText (fallbackPath, fallback);
          }

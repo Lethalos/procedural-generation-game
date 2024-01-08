@@ -15,7 +15,6 @@ public class TerrainGenerator : MonoBehaviour
 
     public Transform viewer;
     public Material mapMaterial;
-    public Texture2D splatTexture;
 
     Vector2 viewerPosition;
     Vector2 viewerPositionOld;
@@ -81,7 +80,7 @@ public class TerrainGenerator : MonoBehaviour
                     }
                     else
                     {
-                        TerrainChunk newChunk = new TerrainChunk(viewedChunkCoord, heightMapSettings, meshSettings, detailLevels, colliderLODIndex, transform, viewer, mapMaterial, splatTexture);
+                        TerrainChunk newChunk = new TerrainChunk(viewedChunkCoord, heightMapSettings, meshSettings, detailLevels, colliderLODIndex, transform, viewer, mapMaterial);
                         terrainChunkDictionary.Add(viewedChunkCoord, newChunk);
                         newChunk.onVisibilityChanged += OnTerrainChunkVisibilityChanged;
                         newChunk.Load();

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 using static TerrainGenerator;
 
@@ -31,7 +32,7 @@ public class TerrainChunk
     MeshSettings meshSettings;
     Transform viewer;
 
-    public TerrainChunk(Vector2 coord, HeightMapSettings heightMapSettings, MeshSettings meshSetting, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Transform viewer, Material material, Texture2D splatTexture)
+    public TerrainChunk(Vector2 coord, HeightMapSettings heightMapSettings, MeshSettings meshSetting, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Transform viewer, Material material)
     {
         this.coord = coord;
         this.heightMapSettings = heightMapSettings;
@@ -54,8 +55,6 @@ public class TerrainChunk
         microSplatMeshTerrain.templateMaterial = material;
         microSplatMeshTerrain.meshTerrains = new MeshRenderer[1];
         microSplatMeshTerrain.meshTerrains[0] = meshRenderer;
-        microSplatMeshTerrain.controlTextures = new Texture2D[1];
-        microSplatMeshTerrain.controlTextures[0] = splatTexture;
         meshRenderer.material = material;
 
         meshObject.transform.position = new Vector3(position.x, 0, position.y);
@@ -136,6 +135,11 @@ public class TerrainChunk
                         meshFilter.mesh = lodMesh.mesh;
                         //Debug.Log("Load: " + meshObject.GetComponent<MeshFilter>().mesh.vertexCount); delete
                         if (meshObject.GetComponent<FlatRegionAnalyzer>() == null) meshObject.AddComponent<FlatRegionAnalyzer>();
+                        if (meshObject.GetComponent<VegetationSpawner>() == null)
+                        {
+                            UnityEngine.Debug.Log("Size: " + meshSettings.meshWorldSize);
+                            meshObject.AddComponent<VegetationSpawner>();
+                        }
                         //meshObject.AddComponent<MeshCoordCalculator>();
                     }
                     else if (!lodMesh.hasRequestedMesh)

@@ -194,7 +194,7 @@ namespace JBooth.MicroSplat
          Repaint();
       }
 
-      void SaveTexture (Texture2D tex)
+      public static void SaveTexture (Texture2D tex)
       {
          if (tex != null)
          {

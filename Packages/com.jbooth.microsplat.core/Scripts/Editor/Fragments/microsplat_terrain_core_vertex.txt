@@ -10,7 +10,7 @@ float4 ConstructTerrainTangent(float3 normal, float3 positiveZ)
     // Also terrain's tangent calculation was wrong in a left handed system because cross((0,0,1), terrainNormalOS) points to the wrong direction as negative X.
     // Therefore all the 4 xyzw components of the tangent needs to be flipped to correct the tangent frame.
     // (See TerrainLitData.hlsl - GetSurfaceAndBuiltinData)
-    float3 tangent = cross(normal, positiveZ);
+    float3 tangent = normalize(cross(normal, positiveZ));
     return float4(tangent, -1);
 }
 
@@ -51,6 +51,14 @@ void ApplyMeshModification(inout VertexData input)
       input.normal = float3(0,1,0);
    #endif
 
+   #if _MICROVERSEPREVIEW
+        float4 recipSize = _TerrainHeightmapTexture_TexelSize;
+        recipSize.zw = (1.0f / (_TerrainHeightmapTexture_TexelSize.zw-1));
+        float2 sampleCoords = (input.texcoord0.xy / recipSize.zw + 0.5f) * recipSize.xy;
+        float height = UnpackHeightmap(SAMPLE_TEXTURE2D_LOD(_TerrainHeightmapTexture, shared_linear_clamp_sampler, sampleCoords, 0));
+        input.vertex.xyz += float3(0,1,0) * height * _TerrainHeight * 2;
+   #endif
+
 }
 
 // called by the template, so we can remove tangent from VertexData
@@ -75,8 +83,6 @@ void ModifyVertex(inout VertexData v, inout ExtraV2F d)
       EncodeVertexWorkflow(v, d);
    #elif _MEGASPLAT
       EncodeMegaSplatVertex(v, d);
-   #elif _PLANETVECTORS
-      DoPlanetVectorVertex(v, d);
    #endif
 
 }
@@ -84,16 +90,23 @@ void ModifyVertex(inout VertexData v, inout ExtraV2F d)
 
 void ModifyTessellatedVertex(inout VertexData v, inout ExtraV2F d)
 {
-   #if _TESSDISTANCE
+   #if _MICROVERSEPREVIEW
+      v.vertex.y = OffsetVertex(v, d).y;
+   #elif _TESSDISTANCE || _TESSEDGE
       v.vertex.xyz += OffsetVertex(v, d);
    #endif
+
 }
 
 float3 GetTessFactors ()
 {
+    #if _TESSEDGE
+      return float3(_TessData1.x, _TessData1.w, 0);
+   #endif
    #if _TESSDISTANCE
       return float3(_TessData2.x, _TessData2.y, _TessData1.x);
    #endif
+   
    return 0;
 }
 

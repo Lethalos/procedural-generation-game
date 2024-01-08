@@ -85,6 +85,14 @@ namespace JBooth.MicroSplat
       public Texture2D clipMap;
 #endif
 
+      public void OnDestroy()
+      {
+         if (blendMatInstance != null)
+         {
+            DestroyImmediate(blendMatInstance);
+         }
+      }
+
       protected long GetOverrideHash()
       {
          long h = 3;
@@ -361,6 +369,25 @@ namespace JBooth.MicroSplat
       public void RevisionFromMat()
       {
 #if UNITY_EDITOR
+         if (templateMaterial != null &&
+             (templateMaterial.GetTexture("_Diffuse") == null ||
+              templateMaterial.GetTexture("_NormalSAO") == null))
+         {
+            var path = UnityEditor.AssetDatabase.GetAssetPath(templateMaterial);
+            path = path.Replace(".mat", "Config.asset");
+            var cfg = UnityEditor.AssetDatabase.LoadAssetAtPath<TextureArrayConfig>(path);
+            if (cfg == null)
+                return;
+            if (templateMaterial.GetTexture("_Diffuse") == null)
+            {
+               templateMaterial.SetTexture("_Diffuse", cfg.diffuseArray);
+            }
+            if (templateMaterial.GetTexture("_NormalSAO") == null)
+            {
+               templateMaterial.SetTexture("_NormalSAO", cfg.normalSAOArray);
+            }
+         }
+
          if (keywordSO == null && templateMaterial != null)
          {
             var path = UnityEditor.AssetDatabase.GetAssetPath(templateMaterial);

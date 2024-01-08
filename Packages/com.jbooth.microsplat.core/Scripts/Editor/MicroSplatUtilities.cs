@@ -208,6 +208,8 @@ namespace JBooth.MicroSplat
       public static void DrawTextureField(MicroSplatObject t, GUIContent content, ref Texture2D tex,
          string keyword, string keyword2 = null, string keyword3 = null, string keyword4 = null, bool allKeywordsRequired = true)
       {
+         if (t.keywordSO == null)
+            return;
          if (allKeywordsRequired)
          {
             if (keyword != null && !t.keywordSO.IsKeywordEnabled (keyword))
@@ -422,16 +424,12 @@ namespace JBooth.MicroSplat
                if (textureIndex < cachedConfig.sourceTextures.Count && textureIndex >= 0)
                {
                   var conf = cachedConfig.sourceTextures [textureIndex];
-                  if (conf != null && conf.diffuse != null)
+                  if (conf != null && conf.terrainLayer != null)
                   {
-                     if (!string.IsNullOrEmpty(conf.layerName))
-                     {
-                        name = conf.layerName;
-                     }
-                     else
-                     {
+                     if (conf.terrainLayer != null)
+                        name = conf.terrainLayer.name;
+                     else if (conf.diffuse != null)
                         name = conf.diffuse.name;
-                     }
                   }
                }
             }

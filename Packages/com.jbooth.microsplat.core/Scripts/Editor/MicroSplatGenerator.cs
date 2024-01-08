@@ -61,10 +61,15 @@ namespace JBooth.MicroSplat
       void WriteOptions(string[] features, StringBuilder sb, MicroSplatShaderGUI.MicroSplatCompiler compiler, MicroSplatShaderGUI.MicroSplatCompiler.AuxShader auxShader, string baseName)
       {
 
-         if (features.Contains("_TESSDISTANCE"))
+         if (features.Contains("_TESSEDGE"))
+         {
+            sb.AppendLine("Tessellation \"Edge\"");
+         }
+         else if (features.Contains("_TESSDISTANCE"))
          {
             sb.AppendLine("Tessellation \"Distance\"");
          }
+         
 
          sb.Append("      Tags {\"RenderType\" = \"Opaque\" \"Queue\" = \"Geometry+100\" \"IgnoreProjector\" = \"False\" ");
 

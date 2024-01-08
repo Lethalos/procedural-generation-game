@@ -358,7 +358,7 @@ namespace JBooth.MicroSplat
             shaderTarget = "5.0";
          }
 
-         if (features.Contains("_TESSDISTANCE"))
+         if (features.Contains("_TESSDISTANCE") || features.Contains("_TESSEDGE"))
          {
             defines.AppendLine("\n      #define _TESSELLATION_ON 1");
             shader = shader.Replace("%TESSELLATION%", templateTess.text);
