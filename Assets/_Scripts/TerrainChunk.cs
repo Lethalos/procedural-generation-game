@@ -101,6 +101,8 @@ public class TerrainChunk
         }
     }
 
+    bool hasFlatRegionCollider = false;
+
     public void UpdateTerrainChunk()
     {
         if (heightMapReceived)
@@ -134,13 +136,19 @@ public class TerrainChunk
                         previousLODIndex = lodIndex;
                         meshFilter.mesh = lodMesh.mesh;
                         //Debug.Log("Load: " + meshObject.GetComponent<MeshFilter>().mesh.vertexCount); delete
-                        if (meshObject.GetComponent<FlatRegionAnalyzer>() == null) meshObject.AddComponent<FlatRegionAnalyzer>();
-                        if (meshObject.GetComponent<VegetationSpawner>() == null)
-                        {
-                            UnityEngine.Debug.Log("Size: " + meshSettings.meshWorldSize);
-                            meshObject.AddComponent<VegetationSpawner>();
-                        }
                         //meshObject.AddComponent<MeshCoordCalculator>();
+                        if (meshObject.GetComponent<FlatRegionAnalyzer>() == null)
+                        {
+                            meshObject.AddComponent<FlatRegionAnalyzer>();
+                            //hasFlatRegionCollider = true;
+                        }
+                        
+                        //if (meshObject.GetComponent<VegetationSpawner>() == null)
+                        //{
+                        //    UnityEngine.Debug.Log("Size: " + meshSettings.meshWorldSize);
+                        //    VegetationSpawner vegetationSpawner = meshObject.AddComponent<VegetationSpawner>();
+                        //    vegetationSpawner.PlaceVegetation(meshSettings.meshWorldSize, meshSettings.meshWorldSize);
+                        //}
                     }
                     else if (!lodMesh.hasRequestedMesh)
                     {
@@ -171,10 +179,11 @@ public class TerrainChunk
                 }
             }
 
-            if (sqrDistanceFromViewerToEdge < colliderGenerationDistanceThreshold * colliderGenerationDistanceThreshold)
+            if (sqrDistanceFromViewerToEdge < colliderGenerationDistanceThreshold * colliderGenerationDistanceThreshold && !hasFlatRegionCollider)
             {
                 if (lodMeshes[colliderLODIndex].hasMesh)
                 {
+                    UnityEngine.Debug.Log("mesh collider updated!");
                     meshCollider.sharedMesh = lodMeshes[colliderLODIndex].mesh;
                     hasSetCollider = true;
                 }
@@ -220,6 +229,5 @@ class LODMesh
         hasRequestedMesh = true;
         ThreadedDataRequester.RequestData(() => MeshGenerator.GenerateTerrainMesh(heightMap.values, meshSettings, lod), OnMeshDataReceived);
     }
-
 }
 

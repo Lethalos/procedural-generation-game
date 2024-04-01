@@ -4,6 +4,10 @@ using UnityEngine;
 
 public class VegetationManager : Singleton<VegetationManager>
 {
-    public GameObject grassPrefab;
-    public GameObject treePrefab;
+    public Transform grassPrefab;
+    public Transform treePrefab;
+
+    public Transform GetGrassPrefab() { return grassPrefab; }
+
+    public Transform GetTreePrefab() { return treePrefab; }
 }

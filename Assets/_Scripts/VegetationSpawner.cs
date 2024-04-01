@@ -4,20 +4,14 @@ using UnityEngine;
 
 public class VegetationSpawner : MonoBehaviour
 {
-    public GameObject grassPrefab;
-    public GameObject shrubPrefab;
-    // Add more vegetation prefabs as needed
-
-    public int terrainWidth = 100;
-    public int terrainLength = 100;
     public int spacing = 5; // Distance between vegetation instances
 
     void Start()
     {
-        //PlaceVegetation();
+        
     }
 
-    void PlaceVegetation()
+    public void PlaceVegetation(float terrainWidth, float terrainLength)
     {
         for (int x = 0; x < terrainWidth; x += spacing)
         {
@@ -28,7 +22,7 @@ public class VegetationSpawner : MonoBehaviour
                 Vector3 normal = GetTerrainNormal(position);
                 float slope = CalculateSlope(normal);
 
-                GameObject vegetationPrefab = ChooseVegetationPrefab(slope);
+                Transform vegetationPrefab = ChooseVegetationPrefab(slope);
                 if (vegetationPrefab != null)
                 {
                     // Randomize rotation and slight scale variation
@@ -36,8 +30,8 @@ public class VegetationSpawner : MonoBehaviour
                     float scaleVariation = Random.Range(0.8f, 1.2f);
                     Vector3 scale = new Vector3(scaleVariation, scaleVariation, scaleVariation);
 
-                    GameObject vegetation = Instantiate(vegetationPrefab, position, rotation);
-                    vegetation.transform.localScale = scale;
+                    Transform vegetation = Instantiate(vegetationPrefab, transform.parent);
+                    vegetation.localScale = scale;
                 }
             }
         }
@@ -48,10 +42,10 @@ public class VegetationSpawner : MonoBehaviour
         return Vector3.Angle(normal, Vector3.up);
     }
 
-    GameObject ChooseVegetationPrefab(float slope)
+    private Transform ChooseVegetationPrefab(float slope)
     {
-        if (slope < 20) return grassPrefab;
-        else if (slope < 40) return shrubPrefab;
+        if (slope < 20) return VegetationManager.Instance.treePrefab;
+        else if (slope < 40) return VegetationManager.Instance.grassPrefab;
         else return null; // Too steep for vegetation
     }
 

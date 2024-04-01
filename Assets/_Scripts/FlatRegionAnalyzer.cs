@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
 using System.Transactions;
+using com.zibra.liquid.Manipulators;
+using com.zibra.common.SDFObjects;
 
 public class FlatRegionAnalyzer : MonoBehaviour
 {
@@ -27,8 +29,14 @@ public class FlatRegionAnalyzer : MonoBehaviour
             //Debug.Log("Flat Region Found: " + flatRegion.bounds);
             //CreateCube(flatRegion);
 
-            Vector3 buildingPos =  transform.TransformPoint(flatRegion.bounds.center);
+            Vector3 buildingPos = transform.TransformPoint(flatRegion.bounds.center);
             BuildingManager.Instance.Generate(new Vector3(buildingPos.x, 0f, buildingPos.z), transform);
+
+            //CreatePit(flatRegion);
+            //ZibraLiquidCollider zibraLiquidCollider = gameObject.AddComponent<ZibraLiquidCollider>();
+            //AnalyticSDF analyticSDF = gameObject.AddComponent<AnalyticSDF>();
+            //analyticSDF.ChosenSDFType = AnalyticSDF.SDFType.Box;  
+            //LiquidManager.Instance.GenerateLiquid(new Vector3(buildingPos.x, 0f, buildingPos.z), transform, zibraLiquidCollider);
         }
         else
         {
@@ -36,7 +44,64 @@ public class FlatRegionAnalyzer : MonoBehaviour
         }
     }
 
-    public void CreateCube(QuadTreeRegion flatRegion)
+    private void CreatePit(QuadTreeRegion flatRegion)
+    {
+        MeshFilter meshFilter = GetComponent<MeshFilter>();
+        Mesh terrainMesh = meshFilter.mesh;
+        Vector3[] vertices = terrainMesh.vertices;
+
+        Bounds flatBounds = flatRegion.bounds;
+        float maxDepth = -15.0f; // Maximum depth of the pit at its center
+        Vector3 center = flatBounds.center;
+
+        // Calculate the radius of the flat region
+        float radius = Mathf.Max(flatBounds.size.x, flatBounds.size.z) / 2;
+
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            if (flatBounds.Contains(vertices[i]))
+            {
+                // Calculate distance from the center of the flat region
+                float distance = Vector3.Distance(new Vector3(vertices[i].x, 0, vertices[i].z), new Vector3(center.x, 0, center.z));
+
+                // Normalize distance based on the radius of the flat region
+                float normalizedDistance = distance / radius;
+
+                // Ensure normalized distance does not exceed 1
+                normalizedDistance = Mathf.Min(normalizedDistance, 1);
+
+                // Calculate depth based on the normalized distance (creates a bowl shape)
+                float depth = maxDepth * Mathf.Cos(normalizedDistance * Mathf.PI / 2);
+
+                // Apply the calculated depth
+                vertices[i].y += depth;
+            }
+        }
+
+        // Update the mesh with the new vertices and recalculate normals
+        terrainMesh.vertices = vertices;
+        terrainMesh.RecalculateNormals();
+        meshFilter.mesh = terrainMesh;
+
+        Debug.Log("Mesh updated!");
+
+        // Update the mesh collider if needed
+        UpdateMeshCollider(terrainMesh);
+    }
+
+    private void UpdateMeshCollider(Mesh terrainMesh)
+    {
+
+        MeshCollider meshCollider = GetComponent<MeshCollider>();
+        if (meshCollider != null)
+        {
+            Debug.Log("Updating mesh collider");
+            meshCollider.sharedMesh = null;
+            meshCollider.sharedMesh = terrainMesh;
+        }
+    }
+
+    private void CreateCube(QuadTreeRegion flatRegion)
     {
         GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
         cube.transform.parent = transform;
@@ -73,36 +138,45 @@ public class FlatRegionAnalyzer : MonoBehaviour
         }
     }
 
-    void OnDrawGizmos()
-    {
-        if (quadTreeRoot != null)
-        {
-            DrawNodeGizmos(quadTreeRoot);
-        }
-    }
+    //void OnDrawGizmos()
+    //{
+    //    if (quadTreeRoot != null)
+    //    {
+    //        DrawNodeGizmos(quadTreeRoot);
+    //    }
+    //}
 
-    void DrawNodeGizmos(QuadTreeNode node, int row = 0)
-    {
-        if (row == 0)
-            Gizmos.color = Color.green;
-        if (row == 1)
-            Gizmos.color = Color.red;
-        if (row == 2)
-            Gizmos.color = Color.yellow;
-        if (row == 3)
-        {
-            Gizmos.color = Color.black;
-            Gizmos.DrawWireCube(transform.TransformPoint(node.bounds.center), node.bounds.size);
-        }
+    //void DrawNodeGizmos(QuadTreeNode node, int row = 0)
+    //{
+    //    if (row == 0)
+    //    {
+    //        Gizmos.color = Color.green;
+    //        Gizmos.DrawWireCube(transform.TransformPoint(node.bounds.center), node.bounds.size);
+    //    }
+    //    if (row == 1)
+    //    {
+    //        Gizmos.color = Color.red;
+    //        Gizmos.DrawWireCube(transform.TransformPoint(node.bounds.center), node.bounds.size);
+    //    }
+    //    if (row == 2)
+    //    {
+    //        Gizmos.color = Color.yellow;
+    //        Gizmos.DrawWireCube(transform.TransformPoint(node.bounds.center), node.bounds.size);
+    //    }
+    //    if (row == 3)
+    //    {
+    //        Gizmos.color = Color.black;
+    //        Gizmos.DrawWireCube(transform.TransformPoint(node.bounds.center), node.bounds.size);
+    //    }
 
-        if (!node.IsLeafNode())
-        {
-            foreach (var child in node.children)
-            {
-                DrawNodeGizmos(child, row + 1);
-            }
-        }
-    }
+    //    if (!node.IsLeafNode())
+    //    {
+    //        foreach (var child in node.children)
+    //        {
+    //            DrawNodeGizmos(child, row + 1);
+    //        }
+    //    }
+    //}
 }
 
 public class QuadTreeNode
