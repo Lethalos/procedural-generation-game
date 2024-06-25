@@ -1,11 +1,9 @@
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Rendering;
 
 public class TerrainGenerator : MonoBehaviour
 {
-    const float viewerMoveThresholdForChunkUpdate = 25f;
+    const float viewerMoveThresholdForChunkUpdate = 20f;
     const float sqrViewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
 
     public int colliderLODIndex;
@@ -16,6 +14,8 @@ public class TerrainGenerator : MonoBehaviour
 
     public Transform viewer;
     public Material mapMaterial;
+
+    public int terrainLayer;
 
     Vector2 viewerPosition;
     Vector2 viewerPositionOld;
@@ -29,9 +29,10 @@ public class TerrainGenerator : MonoBehaviour
     void Start()
     {
         float maxViewDst = detailLevels[detailLevels.Length - 1].visibleDstThreshold;
-        meshWorldSize = meshSettings.meshWorldSize;
+        Debug.Log("Max view distance: " + maxViewDst);
+        meshWorldSize = meshSettings.MeshWorldSize;
         chunksVisibleInViewDst = Mathf.RoundToInt(maxViewDst / meshWorldSize);
-
+        Debug.Log("Chunks visible in view distance1: " + chunksVisibleInViewDst);
         UpdateVisibleChunks();
     }
 
@@ -58,6 +59,8 @@ public class TerrainGenerator : MonoBehaviour
     {
         HashSet<Vector2> alreadyUpdatedChunkCoords = new HashSet<Vector2>();
 
+        //Debug.Log("Starting visible chunks count: " + visibleTerrainChunks.Count);
+
         for (int i = visibleTerrainChunks.Count - 1; i >= 0; i--)
         {
             alreadyUpdatedChunkCoords.Add(visibleTerrainChunks[i].coord);
@@ -66,6 +69,8 @@ public class TerrainGenerator : MonoBehaviour
 
         int currentChunkCoordX = Mathf.RoundToInt(viewerPosition.x / meshWorldSize);
         int currentChunkCoordY = Mathf.RoundToInt(viewerPosition.y / meshWorldSize);
+
+        //Debug.Log("Current chunk coordinates: " + currentChunkCoordX + ", " + currentChunkCoordY);
 
         for (int yOffset = -chunksVisibleInViewDst; yOffset <= chunksVisibleInViewDst; yOffset++)
         {
@@ -77,11 +82,13 @@ public class TerrainGenerator : MonoBehaviour
                 {
                     if (terrainChunkDictionary.ContainsKey(viewedChunkCoord))
                     {
+                        //Debug.Log("Updating chunk at: " + viewedChunkCoord);
                         terrainChunkDictionary[viewedChunkCoord].UpdateTerrainChunk();
                     }
                     else
                     {
-                        TerrainChunk newChunk = new TerrainChunk(viewedChunkCoord, heightMapSettings, meshSettings, detailLevels, colliderLODIndex, transform, viewer, mapMaterial);
+                        //Debug.Log("Creating new chunk at: " + viewedChunkCoord);
+                        TerrainChunk newChunk = new TerrainChunk(viewedChunkCoord, heightMapSettings, meshSettings, detailLevels, colliderLODIndex, transform, viewer, mapMaterial, terrainLayer);
                         terrainChunkDictionary.Add(viewedChunkCoord, newChunk);
                         newChunk.onVisibilityChanged += OnTerrainChunkVisibilityChanged;
                         newChunk.Load();
@@ -90,6 +97,7 @@ public class TerrainGenerator : MonoBehaviour
             }
         }
     }
+
 
     void OnTerrainChunkVisibilityChanged(TerrainChunk chunk, bool isVisible)
     {

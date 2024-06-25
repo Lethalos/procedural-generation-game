@@ -1,14 +1,11 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using System.Collections;
-using System.Transactions;
-using com.zibra.liquid.Manipulators;
-using com.zibra.common.SDFObjects;
 
 public class FlatRegionAnalyzer : MonoBehaviour
 {
-    public float maxSlope = 0.03f;
+    [SerializeField] private float maxSlope = 0.03f;
+    private int terrainLayer = 3;
 
     private QuadTreeNode quadTreeRoot;
 
@@ -27,16 +24,8 @@ public class FlatRegionAnalyzer : MonoBehaviour
         if (flatRegion != null)
         {
             //Debug.Log("Flat Region Found: " + flatRegion.bounds);
-            //CreateCube(flatRegion);
-
-            Vector3 buildingPos = transform.TransformPoint(flatRegion.bounds.center);
-            BuildingManager.Instance.Generate(new Vector3(buildingPos.x, 0f, buildingPos.z), transform);
-
+            CreateBase(flatRegion);
             //CreatePit(flatRegion);
-            //ZibraLiquidCollider zibraLiquidCollider = gameObject.AddComponent<ZibraLiquidCollider>();
-            //AnalyticSDF analyticSDF = gameObject.AddComponent<AnalyticSDF>();
-            //analyticSDF.ChosenSDFType = AnalyticSDF.SDFType.Box;  
-            //LiquidManager.Instance.GenerateLiquid(new Vector3(buildingPos.x, 0f, buildingPos.z), transform, zibraLiquidCollider);
         }
         else
         {
@@ -44,62 +33,94 @@ public class FlatRegionAnalyzer : MonoBehaviour
         }
     }
 
-    private void CreatePit(QuadTreeRegion flatRegion)
+    private void CreateBase(QuadTreeRegion flatRegion)
     {
-        MeshFilter meshFilter = GetComponent<MeshFilter>();
-        Mesh terrainMesh = meshFilter.mesh;
-        Vector3[] vertices = terrainMesh.vertices;
-
-        Bounds flatBounds = flatRegion.bounds;
-        float maxDepth = -15.0f; // Maximum depth of the pit at its center
-        Vector3 center = flatBounds.center;
-
-        // Calculate the radius of the flat region
-        float radius = Mathf.Max(flatBounds.size.x, flatBounds.size.z) / 2;
-
-        for (int i = 0; i < vertices.Length; i++)
+        if (TryGetTerrainHeight(transform.TransformPoint(flatRegion.bounds.center), out Vector3 terrainPosition, out Vector3 normal))
         {
-            if (flatBounds.Contains(vertices[i]))
-            {
-                // Calculate distance from the center of the flat region
-                float distance = Vector3.Distance(new Vector3(vertices[i].x, 0, vertices[i].z), new Vector3(center.x, 0, center.z));
-
-                // Normalize distance based on the radius of the flat region
-                float normalizedDistance = distance / radius;
-
-                // Ensure normalized distance does not exceed 1
-                normalizedDistance = Mathf.Min(normalizedDistance, 1);
-
-                // Calculate depth based on the normalized distance (creates a bowl shape)
-                float depth = maxDepth * Mathf.Cos(normalizedDistance * Mathf.PI / 2);
-
-                // Apply the calculated depth
-                vertices[i].y += depth;
-            }
-        }
-
-        // Update the mesh with the new vertices and recalculate normals
-        terrainMesh.vertices = vertices;
-        terrainMesh.RecalculateNormals();
-        meshFilter.mesh = terrainMesh;
-
-        Debug.Log("Mesh updated!");
-
-        // Update the mesh collider if needed
-        UpdateMeshCollider(terrainMesh);
-    }
-
-    private void UpdateMeshCollider(Mesh terrainMesh)
-    {
-
-        MeshCollider meshCollider = GetComponent<MeshCollider>();
-        if (meshCollider != null)
-        {
-            Debug.Log("Updating mesh collider");
-            meshCollider.sharedMesh = null;
-            meshCollider.sharedMesh = terrainMesh;
+            Debug.Log("Building created at " + terrainPosition);
+            Vector3 buildingPos = terrainPosition;
+            BuildingManager.Instance.Generate(new Vector3(buildingPos.x, 0f, buildingPos.z), transform);
         }
     }
+
+    private bool TryGetTerrainHeight(Vector3 position, out Vector3 terrainPosition, out Vector3 normal)
+    {
+        RaycastHit hit;
+        int layerMask = 1 << terrainLayer;
+
+        Vector3 rayOrigin = new Vector3(position.x, 1000f, position.z);
+        Vector3 rayDirection = Vector3.down;
+
+        // Draw the ray in the Scene view for debugging
+        Debug.DrawRay(rayOrigin, rayDirection * 1000f, Color.red, 15f);
+
+        if (Physics.Raycast(rayOrigin, rayDirection, out hit, Mathf.Infinity, layerMask))
+        {
+            terrainPosition = hit.point;
+            normal = hit.normal;
+            return true;
+        }
+
+        terrainPosition = position;
+        normal = Vector3.up;
+        return false;
+    }
+
+    //private void CreatePit(QuadTreeRegion flatRegion)
+    //{
+    //    MeshFilter meshFilter = GetComponent<MeshFilter>();
+    //    Mesh terrainMesh = meshFilter.mesh;
+    //    Vector3[] vertices = terrainMesh.vertices;
+
+    //    Bounds flatBounds = flatRegion.bounds;
+    //    float maxDepth = -15.0f; // Maximum depth of the pit at its center
+    //    Vector3 center = flatBounds.center;
+
+    //    // Calculate the radius of the flat region
+    //    float radius = Mathf.Max(flatBounds.size.x, flatBounds.size.z) / 2;
+
+    //    for (int i = 0; i < vertices.Length; i++)
+    //    {
+    //        if (flatBounds.Contains(vertices[i]))
+    //        {
+    //            // Calculate distance from the center of the flat region
+    //            float distance = Vector3.Distance(new Vector3(vertices[i].x, 0, vertices[i].z), new Vector3(center.x, 0, center.z));
+
+    //            // Normalize distance based on the radius of the flat region
+    //            float normalizedDistance = distance / radius;
+
+    //            // Ensure normalized distance does not exceed 1
+    //            normalizedDistance = Mathf.Min(normalizedDistance, 1);
+
+    //            // Calculate depth based on the normalized distance (creates a bowl shape)
+    //            float depth = maxDepth * Mathf.Cos(normalizedDistance * Mathf.PI / 2);
+
+    //            // Apply the calculated depth
+    //            vertices[i].y += depth;
+    //        }
+    //    }
+
+    //    // Update the mesh with the new vertices and recalculate normals
+    //    terrainMesh.vertices = vertices;
+    //    terrainMesh.RecalculateNormals();
+    //    meshFilter.mesh = terrainMesh;
+
+    //    Debug.Log("Mesh updated!");
+
+    //    // Update the mesh collider if needed
+    //    UpdateMeshCollider(terrainMesh);
+    //}
+
+    //private void UpdateMeshCollider(Mesh terrainMesh)
+    //{
+    //    MeshCollider meshCollider = GetComponent<MeshCollider>();
+    //    if (meshCollider != null)
+    //    {
+    //        Debug.Log("Updating mesh collider");
+    //        meshCollider.sharedMesh = null;
+    //        meshCollider.sharedMesh = terrainMesh;
+    //    }
+    //}
 
     private void CreateCube(QuadTreeRegion flatRegion)
     {
@@ -186,7 +207,7 @@ public class QuadTreeNode
     public float maxSlope;
     public QuadTreeNode[] children;
 
-    public static int MaxDepth = 3;
+    public static int MaxDepth = 1;
     private int currentDepth = 0;
 
     public QuadTreeNode(Bounds bounds, Vector3[] vertices, float maxSlope, int depth)

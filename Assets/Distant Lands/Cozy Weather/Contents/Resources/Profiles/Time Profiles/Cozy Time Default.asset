@@ -46,7 +46,9 @@ MonoBehaviour:
   startTime:
     hours: 9
     minutes: 0
-  timeMovementSpeed: 1
+    seconds: 0
+    milliseconds: 0
+  timeMovementSpeed: 10
   timeSpeedMultiplier:
     serializedVersion: 2
     m_Curve:
