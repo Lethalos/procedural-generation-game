@@ -12,14 +12,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac36c75b9c2af5b42a8f1907e068490d, type: 3}
   m_Name: Stylized Moon
   m_EditorClassIdentifier: 
-  satelliteReference: {fileID: 2012264065759116755, guid: 114d5c9d925258141a3450e2d56f525d, type: 3}
+  satelliteReference: {fileID: 2012264065759116755, guid: 114d5c9d925258141a3450e2d56f525d,
+    type: 3}
   orbitRef: {fileID: 0}
   moonRef: {fileID: 0}
   lightRef: {fileID: 0}
   size: 2
   distance: 1
   useLight: 1
-  flare: {fileID: 12100000, guid: 7f27290990cd1754c94eba89ca2dafa8, type: 2}
+  flareRef: {fileID: 0}
+  flare:
+    flare: {fileID: 0}
+    intensity: 1
+    scale: 1
+    screenAttenuation:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    useOcclusion: 1
+    occlusionRadius: 0.5
+    allowOffscreen: 1
   lightColorMultiplier: {r: 1.1468587, g: 1.3218446, b: 1.4218365, a: 1}
   castShadows: 2
   orbitOffset: 255.01
@@ -30,10 +44,10 @@ MonoBehaviour:
   rotationPeriodOffset: 0
   satelliteRotateAxis: {x: 0, y: 0, z: 0}
   satelliteDirection: 0
-  satelliteRotation: 229.97029
+  satelliteRotation: 345.00168
   satellitePitch: -0.19
   declination: 30
   declinationPeriod: 768
   declinationPeriodOffset: 0
   changedLastFrame: 0
-  open: 1
+  open: 0

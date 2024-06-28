@@ -757,8 +757,6 @@ namespace DistantLands.Cozy
 
             SetStarColors(starColor);
             SetCloudColors(cloudColor);
-
-
         }
 
 

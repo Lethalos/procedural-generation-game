@@ -4,36 +4,28 @@ using UnityEngine;
 
 public class VegetationInstancer : MonoBehaviour
 {
-    public GameObject grassPrefab;
-    public GameObject treePrefab;
-    public int grassInstanceCount = 500;
-    public int treeInstanceCount = 100;
-    public Vector3 areaSize = new Vector3(100, 0, 100);
-    public Vector3 chunkCenter;
-    public int currentLODIndex;
-    public int terrainLayer;
+    private GameObject grassPrefab;
+    private int grassInstanceCount = 2000;
+    private int treeInstanceCount = 100;
+    private Vector3 areaSize = new Vector3(100, 0, 100);
+    private Vector3 chunkCenter;
+    private int currentLODIndex;
+    private int terrainLayer;
     private float maxSlope = 20f;
 
     private List<Matrix4x4[]> grassMatrices;
-    private List<Matrix4x4[]> treeMatrices;
+    private List<(Matrix4x4[], GameObject)> treeMatrices; // Tuple to store matrices and corresponding prefab
     private MaterialPropertyBlock propertyBlock;
     private Vector3[] raycastStartPositions;
 
-    void Start()
-    {
-        InitializeVegetation();
-    }
+    private bool isInitialized = false;
 
     void Update()
     {
-        if (currentLODIndex != 0)
-        {
-            Destroy(this);
-            return;
-        }
+        if (!isInitialized) return;
 
         RenderVegetation(grassPrefab, grassMatrices);
-        RenderVegetation(treePrefab, treeMatrices);
+        RenderTrees();
     }
 
     void RenderVegetation(GameObject prefab, List<Matrix4x4[]> matricesList)
@@ -56,16 +48,42 @@ public class VegetationInstancer : MonoBehaviour
         }
     }
 
-    void InitializeVegetation()
+    public void RenderGrass()
     {
+        RenderVegetation(grassPrefab, grassMatrices);
+    }
+
+    public void RenderTrees()
+    {
+        foreach (var treeData in treeMatrices)
+        {
+            GameObject prefab = treeData.Item2;
+            List<Matrix4x4[]> matricesList = new List<Matrix4x4[]> { treeData.Item1 };
+
+            RenderVegetation(prefab, matricesList);
+        }
+    }
+
+    public void InitializeVegetation(Vector3 areaSize, Vector3 chunkCenter, int currentLODIndex, int terrainLayer)
+    {
+        if (isInitialized) return;
+
+        grassPrefab = VegetationManager.Instance.grassPrefab;
+        this.areaSize = areaSize;
+        this.chunkCenter = chunkCenter;
+        this.currentLODIndex = currentLODIndex;
+        this.terrainLayer = terrainLayer;
+
         propertyBlock = new MaterialPropertyBlock();
         raycastStartPositions = new Vector3[grassInstanceCount + treeInstanceCount];
 
         grassMatrices = new List<Matrix4x4[]>();
-        treeMatrices = new List<Matrix4x4[]>();
+        treeMatrices = new List<(Matrix4x4[], GameObject)>();
 
         StartCoroutine(InitializeGrass());
         StartCoroutine(InitializeTrees());
+
+        isInitialized = true;
     }
 
     IEnumerator InitializeGrass()
@@ -89,7 +107,8 @@ public class VegetationInstancer : MonoBehaviour
                 if (slope <= maxSlope)
                 {
                     float scale = Random.Range(5f, 7f);
-                    matrices[i] = Matrix4x4.TRS(terrainPosition, Quaternion.identity, new Vector3(scale, scale, scale));
+                    Quaternion rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0); // Random rotation around Y-axis
+                    matrices[i] = Matrix4x4.TRS(terrainPosition, rotation, new Vector3(scale, scale, scale));
                 }
                 else
                 {
@@ -112,10 +131,11 @@ public class VegetationInstancer : MonoBehaviour
 
     IEnumerator InitializeTrees()
     {
-        Matrix4x4[] matrices = new Matrix4x4[treeInstanceCount];
-
         for (int i = 0; i < treeInstanceCount; i++)
         {
+            GameObject treePrefab = VegetationManager.Instance.treePrefabs[Random.Range(0, VegetationManager.Instance.treePrefabs.Count)];
+            Matrix4x4[] matrices = new Matrix4x4[1]; // Single matrix per tree for simplicity
+
             Vector3 position = new Vector3(
                 Random.Range(-areaSize.x / 2, areaSize.x / 2),
                 0,
@@ -131,25 +151,26 @@ public class VegetationInstancer : MonoBehaviour
                 if (slope <= maxSlope)
                 {
                     float scale = Random.Range(2.0f, 3.0f);
-                    matrices[i] = Matrix4x4.TRS(terrainPosition, Quaternion.identity, new Vector3(scale, scale, scale));
+                    Quaternion rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0); // Random rotation around Y-axis
+                    matrices[0] = Matrix4x4.TRS(terrainPosition, rotation, new Vector3(scale, scale, scale));
                 }
                 else
                 {
-                    matrices[i] = Matrix4x4.zero;
+                    matrices[0] = Matrix4x4.zero;
                 }
             }
             else
             {
-                matrices[i] = Matrix4x4.zero;
+                matrices[0] = Matrix4x4.zero;
             }
 
-            if (i % 100 == 0)
+            treeMatrices.Add((matrices, treePrefab));
+
+            if (i % 10 == 0)
             {
                 yield return null;
             }
         }
-
-        treeMatrices.Add(matrices);
     }
 
     bool TryGetTerrainHeight(Vector3 position, out Vector3 terrainPosition, out Vector3 normal)

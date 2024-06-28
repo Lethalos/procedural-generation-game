@@ -163,64 +163,40 @@ public class TerrainChunk
         return lodIndex;
     }
 
-    private void ExecuteWithDelay(Action action, double delayInSeconds)
-    {
-        Timer timer = new Timer(delayInSeconds * 1000);
-        timer.AutoReset = false; // Set the timer to execute only once
-        timer.Elapsed += (sender, args) =>
-        {
-            action();
-            timer.Dispose(); // Clean up the timer after execution
-        };
-        timer.Start();
-    }
-
     private void HandleBuildingInstancing(int lodIndex)
     {
-        var flatRegionAnalyzer = meshObject.GetComponent<FlatRegionAnalyzer>();
+        FlatRegionAnalyzer flatRegionAnalyzer = meshObject.GetComponent<FlatRegionAnalyzer>();
 
-        if(lodIndex == 0)
+        if (lodIndex == 0)
         {
-            if (meshObject.GetComponent<FlatRegionAnalyzer>() == null)
+            if (flatRegionAnalyzer == null)
             {
                 meshObject.AddComponent<FlatRegionAnalyzer>();
             }
+            else flatRegionAnalyzer.enabled = true;
         }
         else
         {
-            if(flatRegionAnalyzer != null)
-            {
-                UnityEngine.Object.Destroy(flatRegionAnalyzer);
-            }
+            if (flatRegionAnalyzer != null) flatRegionAnalyzer.enabled = false;
         }
     }
 
     private void HandleVegetationInstancing(int lodIndex)
     {
-        var vegetaitonInstancer = meshObject.GetComponent<VegetationInstancer>();
+        VegetationInstancer vegetationInstancer = meshObject.GetComponent<VegetationInstancer>();
+        
         if (lodIndex == 0)
         {
-            if (vegetaitonInstancer == null)
+            if (vegetationInstancer == null)
             {
-                vegetaitonInstancer = meshObject.AddComponent<VegetationInstancer>();
-                vegetaitonInstancer.grassPrefab = VegetationManager.Instance.grassPrefab;
-                // Get random tree prefab
-                int randomTreePrefabIndex = UnityEngine.Random.Range(0, VegetationManager.Instance.treePrefabs.Count);
-                vegetaitonInstancer.treePrefab = VegetationManager.Instance.treePrefabs[randomTreePrefabIndex];
-                vegetaitonInstancer.grassInstanceCount = 2000;
-                vegetaitonInstancer.treeInstanceCount = 100;
-                vegetaitonInstancer.areaSize = new Vector3(meshSettings.MeshWorldSize, 0f, meshSettings.MeshWorldSize);
-                vegetaitonInstancer.chunkCenter = chunkWorldPosition;
-                vegetaitonInstancer.currentLODIndex = lodIndex;
-                vegetaitonInstancer.terrainLayer = terrainLayer;
+                vegetationInstancer = meshObject.AddComponent<VegetationInstancer>();
+                vegetationInstancer.InitializeVegetation(new Vector3(meshSettings.MeshWorldSize, 0f, meshSettings.MeshWorldSize), chunkWorldPosition, lodIndex, terrainLayer);
             }
+            else vegetationInstancer.enabled = true;
         }
         else
         {
-            if (vegetaitonInstancer != null)
-            {
-                UnityEngine.Object.Destroy(vegetaitonInstancer);
-            }
+            if (vegetationInstancer != null) vegetationInstancer.enabled = false;
         }
     }
 

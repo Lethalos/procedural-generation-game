@@ -9,35 +9,33 @@ public class FlatRegionAnalyzer : MonoBehaviour
 
     private QuadTreeNode quadTreeRoot;
 
+    private bool isAnalyzed = false;
+
     void Start()
     {
+        if(isAnalyzed) return;
+
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         Mesh terrainMesh = meshFilter.mesh;
 
         Bounds terrainBounds = terrainMesh.bounds;
-        //print("Center: " + terrainBounds.center);
-        //print("Size: " + terrainBounds.size);
         quadTreeRoot = new QuadTreeNode(terrainBounds, terrainMesh.vertices, maxSlope, 0);
 
         QuadTreeRegion flatRegion = FindFlatRegion(quadTreeRoot);
 
         if (flatRegion != null)
         {
-            //Debug.Log("Flat Region Found: " + flatRegion.bounds);
             CreateBase(flatRegion);
-            //CreatePit(flatRegion);
         }
-        else
-        {
-            //Debug.Log("No Flat Region Found");
-        }
+
+        isAnalyzed = true;
     }
 
     private void CreateBase(QuadTreeRegion flatRegion)
     {
         if (TryGetTerrainHeight(transform.TransformPoint(flatRegion.bounds.center), out Vector3 terrainPosition, out Vector3 normal))
         {
-            Debug.Log("Building created at " + terrainPosition);
+            //Debug.Log("Building created at " + terrainPosition);
             Vector3 buildingPos = terrainPosition;
             BuildingManager.Instance.Generate(new Vector3(buildingPos.x, 0f, buildingPos.z), transform);
         }
