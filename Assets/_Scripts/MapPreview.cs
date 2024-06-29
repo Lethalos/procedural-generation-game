@@ -8,8 +8,8 @@ public class MapPreview : MonoBehaviour
     [SerializeField] MeshFilter meshFilter;
     [SerializeField] MeshRenderer meshRenderer;
 
-    [SerializeField] enum DrawMode { NoiseMap, Mesh, FalloffMap };
-    [SerializeField] DrawMode drawMode;
+    public enum DrawMode { NoiseMap, Mesh, FalloffMap };
+    public DrawMode drawMode;
 
     public MeshSettings meshSettings;
     public HeightMapSettings heightMapSettings;
