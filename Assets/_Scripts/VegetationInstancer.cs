@@ -20,7 +20,7 @@ public class VegetationInstancer : MonoBehaviour
 
     private bool isInitialized = false;
 
-    void Update()
+    private void Update()
     {
         if (!isInitialized) return;
 
@@ -106,9 +106,9 @@ public class VegetationInstancer : MonoBehaviour
 
                 if (slope <= maxSlope)
                 {
-                    float scale = Random.Range(5f, 7f);
+                    float scale = Random.Range(0.5f, 0.7f);
                     Quaternion rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0); // Random rotation around Y-axis
-                    matrices[i] = Matrix4x4.TRS(terrainPosition, rotation, new Vector3(scale, scale, scale));
+                    matrices[i] = Matrix4x4.TRS(terrainPosition, rotation, new Vector3(scale * 15, scale * 5, scale * 15));
                 }
                 else
                 {
@@ -150,7 +150,7 @@ public class VegetationInstancer : MonoBehaviour
 
                 if (slope <= maxSlope)
                 {
-                    float scale = Random.Range(2.0f, 3.0f);
+                    float scale = Random.Range(1f, 1.5f);
                     Quaternion rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0); // Random rotation around Y-axis
                     matrices[0] = Matrix4x4.TRS(terrainPosition, rotation, new Vector3(scale, scale, scale));
                 }
@@ -177,6 +177,13 @@ public class VegetationInstancer : MonoBehaviour
     {
         RaycastHit hit;
         int layerMask = 1 << terrainLayer;
+
+        if (Physics.Raycast(new Vector3(position.x, 1000f, position.z), Vector3.down, out hit, Mathf.Infinity, LayerMask.GetMask("Building")))
+        {
+            terrainPosition = position;
+            normal = Vector3.up;
+            return false;
+        }
 
         if (Physics.Raycast(new Vector3(position.x, 1000f, position.z), Vector3.down, out hit, Mathf.Infinity, layerMask))
         {

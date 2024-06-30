@@ -129,8 +129,8 @@ public class TerrainChunk
                     meshCollider.sharedMesh = null;
                     meshCollider.sharedMesh = lodMesh.mesh;
 
-                    HandleVegetationInstancing(lodIndex);
                     HandleBuildingInstancing(lodIndex);
+                    HandleVegetationInstancing(lodIndex);
                 }
                 else if (!lodMesh.hasRequestedMesh)
                 {
@@ -184,7 +184,7 @@ public class TerrainChunk
     private void HandleVegetationInstancing(int lodIndex)
     {
         VegetationInstancer vegetationInstancer = meshObject.GetComponent<VegetationInstancer>();
-        
+
         if (lodIndex == 0)
         {
             if (vegetationInstancer == null)

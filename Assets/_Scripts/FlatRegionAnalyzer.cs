@@ -37,7 +37,8 @@ public class FlatRegionAnalyzer : MonoBehaviour
         {
             //Debug.Log("Building created at " + terrainPosition);
             Vector3 buildingPos = terrainPosition;
-            BuildingManager.Instance.Generate(new Vector3(buildingPos.x, 0f, buildingPos.z), transform);
+            //BuildingManager.Instance.Generate(new Vector3(buildingPos.x, 0f, buildingPos.z), transform);
+            ProceduralBase.Instance.BaseBuild(new Vector3(buildingPos.x, 0f, buildingPos.z));
         }
     }
 
@@ -205,7 +206,7 @@ public class QuadTreeNode
     public float maxSlope;
     public QuadTreeNode[] children;
 
-    public static int MaxDepth = 1;
+    public static int MaxDepth = 0;
     private int currentDepth = 0;
 
     public QuadTreeNode(Bounds bounds, Vector3[] vertices, float maxSlope, int depth)
