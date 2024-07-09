@@ -41,4 +41,19 @@ public class FirstPersonMovement : MonoBehaviour
         // Apply movement.
         rigidbody.velocity = transform.rotation * new Vector3(targetVelocity.x, rigidbody.velocity.y, targetVelocity.y);
     }
+
+    private void Update()
+    {
+        if(Input.GetKeyDown(KeyCode.C))
+        {
+            speed = 100;
+            GetComponent<Jump>().jumpStrength = 300;
+        }
+
+        if (Input.GetKeyDown(KeyCode.X))
+        {
+            speed = 40;
+            GetComponent<Jump>().jumpStrength = 50;
+        }
+    }
 }

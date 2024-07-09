@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class VegetationManager : PersistentSingleton<VegetationManager>
 {
@@ -15,6 +16,14 @@ public class VegetationManager : PersistentSingleton<VegetationManager>
         foreach (Material material in vegetationMaterials)
         {
             material.SetColor("_TopColor", vegetationGreen);
+        }
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            SceneManager.LoadScene("TerrainMenu");
         }
     }
 

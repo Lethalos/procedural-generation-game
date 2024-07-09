@@ -2061,12 +2061,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   majorObjects: []
   minorObjects: []
-  OC: {fileID: 2136461737613875919, guid: b8f6f8b21c2d6d045be713138e3eb07b, type: 3}
+  OC: {fileID: 8916126726407689644, guid: 8a70c597ed8a47f4d86792bb80b0f083, type: 3}
   Arsenal: {fileID: 5254582402495827786, guid: 43dcfb2e6f8f87f489c4c927ea91ddee, type: 3}
   Barrack: {fileID: 8289677813202246513, guid: 1eb6a1d2492659a4da9e0ff23d90ebe5, type: 3}
-  Commissary: {fileID: 5764827080866725826, guid: 37690e5a4e9c41f429c7d8cacd40f952,
+  Commissary: {fileID: 8289677813202246513, guid: 1eb6a1d2492659a4da9e0ff23d90ebe5,
     type: 3}
-  Prison: {fileID: 5764827080866725826, guid: 37690e5a4e9c41f429c7d8cacd40f952, type: 3}
+  Prison: {fileID: 5254582402495827786, guid: 43dcfb2e6f8f87f489c4c927ea91ddee, type: 3}
   Storage: {fileID: 5254582402495827786, guid: 43dcfb2e6f8f87f489c4c927ea91ddee, type: 3}
   Wall: {fileID: 8289677813202246513, guid: 1eb6a1d2492659a4da9e0ff23d90ebe5, type: 3}
   Maintenance: {fileID: 8289677813202246513, guid: 1eb6a1d2492659a4da9e0ff23d90ebe5,

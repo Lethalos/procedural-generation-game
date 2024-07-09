@@ -50,4 +50,4 @@ MonoBehaviour:
   declinationPeriod: 768
   declinationPeriodOffset: 0
   changedLastFrame: 0
-  open: 0
+  open: 1

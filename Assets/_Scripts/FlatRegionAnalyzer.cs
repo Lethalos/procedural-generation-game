@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections;
 
 public class FlatRegionAnalyzer : MonoBehaviour
 {
@@ -13,7 +14,7 @@ public class FlatRegionAnalyzer : MonoBehaviour
 
     void Start()
     {
-        if(isAnalyzed) return;
+        if (isAnalyzed) return;
 
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         Mesh terrainMesh = meshFilter.mesh;
@@ -25,20 +26,23 @@ public class FlatRegionAnalyzer : MonoBehaviour
 
         if (flatRegion != null)
         {
-            CreateBase(flatRegion);
+            StartCoroutine(CreateBase(flatRegion));
         }
 
         isAnalyzed = true;
     }
 
-    private void CreateBase(QuadTreeRegion flatRegion)
+    private IEnumerator CreateBase(QuadTreeRegion flatRegion)
     {
+        yield return new WaitForSeconds(1.5f);
+        
         if (TryGetTerrainHeight(transform.TransformPoint(flatRegion.bounds.center), out Vector3 terrainPosition, out Vector3 normal))
         {
             //Debug.Log("Building created at " + terrainPosition);
             Vector3 buildingPos = terrainPosition;
             //BuildingManager.Instance.Generate(new Vector3(buildingPos.x, 0f, buildingPos.z), transform);
-            ProceduralBase.Instance.BaseBuild(new Vector3(buildingPos.x, 0f, buildingPos.z));
+
+            ProceduralBase.Instance.BaseBuild(new Vector3(buildingPos.x, 0f, buildingPos.z), transform);
         }
     }
 

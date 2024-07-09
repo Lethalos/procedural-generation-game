@@ -881,7 +881,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -1090,6 +1090,7 @@ GameObject:
   - component: {fileID: 8954848614191751672}
   - component: {fileID: 6590666311129984442}
   - component: {fileID: 1736639681414769100}
+  - component: {fileID: 2858073215666727955}
   m_Layer: 0
   m_Name: FirstPersonController
   m_TagString: Untagged
@@ -1107,8 +1108,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 8.51, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 8500758253635717293}
   - {fileID: 2646659448667494292}
@@ -1178,7 +1179,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97fca36bd81de7c4cafce7bbf02ca611, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 30
+  speed: 100
   canRun: 1
   runSpeed: 8
   runningKey: 304
@@ -1214,6 +1215,20 @@ MonoBehaviour:
   headToLower: {fileID: 8500758253635717293}
   crouchYHeadPosition: 1
   colliderToLower: {fileID: 4802598694837832095}
+--- !u!114 &2858073215666727955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6594784976821021689}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07fe373048c5a0743b7cf5d4ae4b297e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interactionDistance: 5
+  interactionKey: 101
 --- !u!1 &7600808230149320994
 GameObject:
   m_ObjectHideFlags: 0

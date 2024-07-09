@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Cinemachine;
 
 public class TerrainGenerator : MonoBehaviour
 {
@@ -26,8 +27,18 @@ public class TerrainGenerator : MonoBehaviour
     Dictionary<Vector2, TerrainChunk> terrainChunkDictionary = new Dictionary<Vector2, TerrainChunk>();
     List<TerrainChunk> visibleTerrainChunks = new List<TerrainChunk>();
 
-    void Start()
+    private void Start()
     {
+        if (PlayerPrefs.HasKey("Scale"))
+        {
+            heightMapSettings.noiseSettings.scale = PlayerPrefs.GetFloat("Scale");
+            heightMapSettings.noiseSettings.octaves = PlayerPrefs.GetInt("Octaves");
+            heightMapSettings.noiseSettings.persistence = PlayerPrefs.GetFloat("Persistence");
+            heightMapSettings.noiseSettings.lacunarity = PlayerPrefs.GetFloat("Lacunarity");
+            heightMapSettings.noiseSettings.seed = PlayerPrefs.GetInt("Seed");
+            heightMapSettings.heightMultiplier = PlayerPrefs.GetFloat("HeightMultiplier");
+        }
+
         float maxViewDst = detailLevels[detailLevels.Length - 1].visibleDstThreshold;
         //Debug.Log("Max view distance: " + maxViewDst);
         meshWorldSize = meshSettings.MeshWorldSize;
@@ -36,7 +47,7 @@ public class TerrainGenerator : MonoBehaviour
         UpdateVisibleChunks();
     }
 
-    void Update()
+    private void Update()
     {
         viewerPosition = new Vector2(viewer.position.x, viewer.position.z);
 
@@ -55,7 +66,7 @@ public class TerrainGenerator : MonoBehaviour
         }
     }
 
-    void UpdateVisibleChunks()
+    private void UpdateVisibleChunks()
     {
         HashSet<Vector2> alreadyUpdatedChunkCoords = new HashSet<Vector2>();
 
@@ -99,7 +110,7 @@ public class TerrainGenerator : MonoBehaviour
     }
 
 
-    void OnTerrainChunkVisibilityChanged(TerrainChunk chunk, bool isVisible)
+    private void OnTerrainChunkVisibilityChanged(TerrainChunk chunk, bool isVisible)
     {
         if (isVisible)
         {

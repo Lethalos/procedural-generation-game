@@ -6,7 +6,7 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
     public BaseObjectManager objectManager; // Reference to the ObjectManager script
 
     private Camera cam;
-    private int distance;
+    private int distance = -40;
     private int count = 0;
 
     Vector3[] vectors = new Vector3[]
@@ -46,7 +46,7 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
         road = objectManager.Road;
     }
 
-    public void BaseBuild(Vector3 buildPos)
+    public void BaseBuild(Vector3 buildPos, Transform parent)
     {
         distanceamt = 60;
 
@@ -70,8 +70,7 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
         slider_vals[3] = 0;
         slider_vals[4] = 0;
 
-        distance = -40;
-
+        distance = PlayerPrefs.GetInt("BaseBuildDistance");
 
         // mousePos.y = build_0.transform.localScale.y / 2;
         //Instantiate(objectManager.OC, buildPos, Quaternion.identity);
@@ -80,37 +79,37 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
 
         //Debug.Log("after" + majors[0]);
 
-        InstantiateMajor(objectManager.OC, buildPos);
-        InstantiateMajor(objectManager.Arsenal, majors[0]);
-        InstantiateMajor(objectManager.Barrack, majors[1]);
-        InstantiateMajor(objectManager.Commissary, majors[2]);
-        InstantiateMajor(objectManager.Prison, majors[3]);
-        InstantiateMajor(objectManager.Storage, majors[4]);
+        InstantiateMajor(objectManager.OC, buildPos, parent);
+        InstantiateMajor(objectManager.Arsenal, majors[0], parent);
+        InstantiateMajor(objectManager.Barrack, majors[1], parent);
+        InstantiateMajor(objectManager.Commissary, majors[2], parent);
+        InstantiateMajor(objectManager.Prison, majors[3], parent);
+        InstantiateMajor(objectManager.Storage, majors[4], parent);
 
         for (int f = 0; f < 5; f++)
         {
-            RoadConnectMajor(buildPos, majors[f], buildPos);
+            RoadConnectMajor(buildPos, majors[f], buildPos, parent);
         }
 
 
         for (int s = 0; s < 5; s++)
         {
-            RoadConnectMajor(buildPos, majors[s], buildPos);
+            RoadConnectMajor(buildPos, majors[s], buildPos, parent);
         }
 
         for (int k = 0; k < 5; k++)
         {
             if (k == 4)
             {
-                RoadConnectMajor(majors[k], majors[0], buildPos);
+                RoadConnectMajor(majors[k], majors[0], buildPos, parent);
                 break;
             }
-            RoadConnectMajor(majors[k], majors[k + 1], buildPos);
+            RoadConnectMajor(majors[k], majors[k + 1], buildPos, parent);
 
         }
 
         //wallss(buildPos, dist);
-        Defence(buildPos, distance);
+        Defence(buildPos, distance, parent);
     }
 
     bool IsItused(int a)
@@ -198,7 +197,7 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
 
     //}
 
-    private void RoadConnectMajor(Vector3 startpt, Vector3 endpt, Vector3 basek)
+    private void RoadConnectMajor(Vector3 startpt, Vector3 endpt, Vector3 basek, Transform parent)
     {
         float x, z;
         int numofroads_x, numofroads_z;
@@ -221,7 +220,7 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
                 road_vec.x = road_vec.x + 10f * signx;
                 if (TryGetTerrainHeight(road_vec, out Vector3 newPosition))
                 {
-                    Instantiate(road, newPosition, Quaternion.Euler(0, 90, 0));
+                    Instantiate(road, newPosition, Quaternion.Euler(0, 90, 0), parent);
                 }
             }
             for (int j = 0; j < Mathf.Abs(numofroads_z); j++)
@@ -229,13 +228,12 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
                 road_vec.z = road_vec.z + 10f * signz;
                 if (TryGetTerrainHeight(road_vec, out Vector3 newPosition))
                 {
-                    Instantiate(road, newPosition, Quaternion.Euler(0, 0, 0));
+                    Instantiate(road, newPosition, Quaternion.Euler(0, 0, 0), parent);
                 }
             }
         }
         else
         {
-
             if (numofroads_x < 0) { signx = -1; }
             if (numofroads_z < 0) { signz = -1; }
             for (int i = 0; i < Mathf.Abs(numofroads_z); i++)
@@ -243,7 +241,7 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
                 road_vec.z = road_vec.z + 10f * signz;
                 if (TryGetTerrainHeight(road_vec, out Vector3 newPosition))
                 {
-                    Instantiate(road, newPosition, Quaternion.Euler(0, 0, 0));
+                    Instantiate(road, newPosition, Quaternion.Euler(0, 0, 0), parent);
                 }
             }
             for (int j = 0; j < Mathf.Abs(numofroads_x); j++)
@@ -251,11 +249,10 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
                 road_vec.x = road_vec.x + 10f * signx;
                 if (TryGetTerrainHeight(road_vec, out Vector3 newPosition))
                 {
-                    Instantiate(road, newPosition, Quaternion.Euler(0, 90, 0));
+                    Instantiate(road, newPosition, Quaternion.Euler(0, 90, 0), parent);
                 }
             }
         }
-
     }
 
     //private void Roads(Vector3 Center)
@@ -320,7 +317,7 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
     //    }
     //}
 
-    private void Defence(Vector3 basek, int dist)
+    private void Defence(Vector3 basek, int dist, Transform parent)
     {
         Vector3 temp = basek;
         Vector3 periphery_start;
@@ -333,21 +330,21 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
         periphery_start.x = periphery_start.x - 5;
         periphery_end = periphery_start;
         periphery_end.x = periphery_end.x - 220 - dist * 2;
-        RoadConnectMajor(periphery_start, periphery_end, basek);
+        RoadConnectMajor(periphery_start, periphery_end, basek, parent);
         periphery_start = periphery_end;
         periphery_start.z = periphery_start.z - 230 - dist * 2;
-        RoadConnectMajor(periphery_start, periphery_end, basek);
+        RoadConnectMajor(periphery_start, periphery_end, basek, parent);
         periphery_start.z = periphery_start.z + 10;
         periphery_end = periphery_start;
         periphery_end.x = periphery_end.x + 210 + dist * 2;
-        RoadConnectMajor(periphery_start, periphery_end, basek);
+        RoadConnectMajor(periphery_start, periphery_end, basek, parent);
         periphery_start = periphery_end;
         periphery_start.z = periphery_start.z + 220 + dist * 2;
-        RoadConnectMajor(periphery_start, periphery_end, basek);
+        RoadConnectMajor(periphery_start, periphery_end, basek, parent);
 
         if (TryGetTerrainHeight(temp, out Vector3 newPosition))
         {
-            Instantiate(barr, newPosition, Quaternion.Euler(0, -90, 0));
+            Instantiate(barr, newPosition, Quaternion.Euler(0, -90, 0), parent);
         }
 
         for (int i = 0; i < (120 + dist) / 5; i++)
@@ -355,20 +352,20 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
             temp.x = temp.x - 10f;
             if (i == (120 + dist) / 10 || i == (120 + dist) / 10 + 1 || i == (120 + dist) / 10 - 1)
             {
-                RoadConnectMajor(basek, temp, basek);
+                RoadConnectMajor(basek, temp, basek, parent);
                 continue;
             }
 
             if (TryGetTerrainHeight(temp, out newPosition))
             {
-                Instantiate(barr, newPosition, Quaternion.Euler(0, -90, 0));
+                Instantiate(barr, newPosition, Quaternion.Euler(0, -90, 0), parent);
             }
 
             if (i % 5 == 0 && i != 0 && i < (120 + dist) / 5 - 4)
             {
                 if (TryGetTerrainHeight(temp, out newPosition))
                 {
-                    Instantiate(tower, newPosition, Quaternion.identity);
+                    Instantiate(tower, newPosition, Quaternion.identity, parent);
                 }
             }
         }
@@ -377,14 +374,14 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
 
         if (TryGetTerrainHeight(temp, out newPosition))
         {
-            Instantiate(tower, newPosition, Quaternion.identity);
+            Instantiate(tower, newPosition, Quaternion.identity, parent);
         }
 
         temp.z = temp.z - 5f;
 
         if (TryGetTerrainHeight(temp, out newPosition))
         {
-            Instantiate(barr, newPosition, Quaternion.Euler(0, 180, 0));
+            Instantiate(barr, newPosition, Quaternion.Euler(0, 180, 0), parent);
         }
 
         for (int i = 0; i < (120 + dist) / 5; i++)
@@ -393,14 +390,14 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
 
             if (TryGetTerrainHeight(temp, out newPosition))
             {
-                Instantiate(barr, newPosition, Quaternion.Euler(0, 180, 0));
+                Instantiate(barr, newPosition, Quaternion.Euler(0, 180, 0), parent);
             }
 
             if (i % 5 == 0 && i != 0 && i < (120 + dist) / 5 - 4)
             {
                 if (TryGetTerrainHeight(temp, out newPosition))
                 {
-                    Instantiate(tower, newPosition, Quaternion.identity);
+                    Instantiate(tower, newPosition, Quaternion.identity, parent);
                 }
             }
         }
@@ -409,14 +406,14 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
 
         if (TryGetTerrainHeight(temp, out newPosition))
         {
-            Instantiate(tower, newPosition, Quaternion.identity);
+            Instantiate(tower, newPosition, Quaternion.identity, parent);
         }
 
         temp.x = temp.x + 5f;
 
         if (TryGetTerrainHeight(temp, out newPosition))
         {
-            Instantiate(barr, newPosition, Quaternion.Euler(0, 90, 0));
+            Instantiate(barr, newPosition, Quaternion.Euler(0, 90, 0), parent);
         }
 
         for (int i = 0; i < (120 + dist) / 5; i++)
@@ -425,14 +422,14 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
 
             if (TryGetTerrainHeight(temp, out newPosition))
             {
-                Instantiate(barr, newPosition, Quaternion.Euler(0, 90, 0));
+                Instantiate(barr, newPosition, Quaternion.Euler(0, 90, 0), parent);
             }
 
             if (i % 5 == 0 && i != 0 && i < (120 + dist) / 5 - 4)
             {
                 if (TryGetTerrainHeight(temp, out newPosition))
                 {
-                    Instantiate(tower, newPosition, Quaternion.identity);
+                    Instantiate(tower, newPosition, Quaternion.identity, parent);
                 }
             }
         }
@@ -441,14 +438,14 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
 
         if (TryGetTerrainHeight(temp, out newPosition))
         {
-            Instantiate(tower, newPosition, Quaternion.identity);
+            Instantiate(tower, newPosition, Quaternion.identity, parent);
         }
 
         temp.z = temp.z + 5f;
 
         if (TryGetTerrainHeight(temp, out newPosition))
         {
-            Instantiate(barr, newPosition, Quaternion.identity);
+            Instantiate(barr, newPosition, Quaternion.identity, parent);
         }
 
         for (int i = 0; i < (120 + dist) / 5; i++)
@@ -457,14 +454,14 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
 
             if (TryGetTerrainHeight(temp, out newPosition))
             {
-                Instantiate(barr, newPosition, Quaternion.identity);
+                Instantiate(barr, newPosition, Quaternion.identity, parent);
             }
 
             if (i % 5 == 0 && i != 0 && i < (120 + dist) / 5 - 4)
             {
                 if (TryGetTerrainHeight(temp, out newPosition))
                 {
-                    Instantiate(tower, newPosition, Quaternion.identity);
+                    Instantiate(tower, newPosition, Quaternion.identity, parent);
                 }
             }
         }
@@ -473,7 +470,7 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
 
         if (TryGetTerrainHeight(temp, out newPosition))
         {
-            Instantiate(tower, newPosition, Quaternion.identity);
+            Instantiate(tower, newPosition, Quaternion.identity, parent);
         }
     }
 
@@ -485,14 +482,14 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
     }
 
     // Function to instantiate Major objects and their connected Minor objects
-    private void InstantiateMajor(GameObject majorObj, Vector3 place)
+    private void InstantiateMajor(GameObject majorObj, Vector3 place, Transform parent)
     {
 
         Vector3 minorplace = new Vector3(0f, 0f, 0f);
 
         if (TryGetTerrainHeight(place, out Vector3 newPosition))
         {
-            Instantiate(majorObj, newPosition, Quaternion.identity);
+            Instantiate(majorObj, newPosition, Quaternion.identity, parent);
         }
 
         // Access Minor objects connected to the Major object
@@ -525,8 +522,8 @@ public class ProceduralBase : PersistentSingleton<ProceduralBase>
             }
 
             // Instantiate the current Minor object as a child of the Major object
-            // Instantiate(connectedMinors[i], place + minorplace, Quaternion.identity, instantiatedMajor.transform);
-            // RoadConnectMajor(place, place + minorplace, place);
+            //Instantiate(connectedMinors[i], place + minorplace, Quaternion.identity, instantiatedMajor.transform);
+            //RoadConnectMajor(place, place + minorplace, place);
         }
 
         for (int k = 0; k < indexes.Length; k++)

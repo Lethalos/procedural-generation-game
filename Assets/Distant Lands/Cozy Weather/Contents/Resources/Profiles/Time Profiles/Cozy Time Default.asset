@@ -48,7 +48,7 @@ MonoBehaviour:
     minutes: 0
     seconds: 0
     milliseconds: 0
-  timeMovementSpeed: 3
+  timeMovementSpeed: 5
   timeSpeedMultiplier:
     serializedVersion: 2
     m_Curve:

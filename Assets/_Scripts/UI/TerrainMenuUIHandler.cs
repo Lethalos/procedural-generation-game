@@ -1,12 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static MapPreview;
 
-public class StartScreenUIHandler : MonoBehaviour
+public class TerrainMenuUIHandler : MonoBehaviour
 {
     [Header("UI Elements")]
     [SerializeField] Slider scaleSlider;
@@ -19,7 +18,7 @@ public class StartScreenUIHandler : MonoBehaviour
     [SerializeField] TextMeshProUGUI lacunarityText;
     [SerializeField] Slider heightMultiplierSlider;
     [SerializeField] TextMeshProUGUI heightMultiplierText;
-    [SerializeField] InputField seedInputField;
+    [SerializeField] TMP_InputField seedInputField;
     [SerializeField] Button nextButton;
     [SerializeField] Button resetButton;
     [SerializeField] Button exitButton;
@@ -31,7 +30,13 @@ public class StartScreenUIHandler : MonoBehaviour
 
     void Start()
     {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
         noiseSettings = heightMapSettings.noiseSettings;
+
+        // Load settings from PlayerPrefs
+        LoadSettings();
 
         // Initialize UI values
         InitializeUI();
@@ -42,16 +47,25 @@ public class StartScreenUIHandler : MonoBehaviour
         persistenceSlider.onValueChanged.AddListener(UpdatePersistence);
         lacunaritySlider.onValueChanged.AddListener(UpdateLacunarity);
         heightMultiplierSlider.onValueChanged.AddListener(UpdateHeightMultiplier);
+        seedInputField.interactable = true;
         seedInputField.onEndEdit.AddListener(UpdateSeed);
         nextButton.onClick.AddListener(GoToNextScene);
         resetButton.onClick.AddListener(ResetValues);
         exitButton.onClick.AddListener(ExitApplication);
     }
 
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            EventSystem.current.SetSelectedGameObject(seedInputField.gameObject);
+        }
+    }
+
     void InitializeUI()
     {
         mapPreview.DrawMapInEditor();
-        
+
         // Set initial values from ScriptableObject
         scaleSlider.value = noiseSettings.scale;
         octavesSlider.value = noiseSettings.octaves;
@@ -73,6 +87,7 @@ public class StartScreenUIHandler : MonoBehaviour
         noiseSettings.scale = value;
         scaleText.text = value.ToString();
         mapPreview.DrawMapInEditor();
+        SaveSettings();
     }
 
     void UpdateOctaves(float value)
@@ -80,6 +95,7 @@ public class StartScreenUIHandler : MonoBehaviour
         noiseSettings.octaves = (int)value;
         octavesText.text = value.ToString();
         mapPreview.DrawMapInEditor();
+        SaveSettings();
     }
 
     void UpdatePersistence(float value)
@@ -87,6 +103,7 @@ public class StartScreenUIHandler : MonoBehaviour
         noiseSettings.persistence = value;
         persistenceText.text = value.ToString("F2");
         mapPreview.DrawMapInEditor();
+        SaveSettings();
     }
 
     void UpdateLacunarity(float value)
@@ -94,6 +111,7 @@ public class StartScreenUIHandler : MonoBehaviour
         noiseSettings.lacunarity = value;
         lacunarityText.text = value.ToString();
         mapPreview.DrawMapInEditor();
+        SaveSettings();
     }
 
     void UpdateHeightMultiplier(float value)
@@ -101,6 +119,7 @@ public class StartScreenUIHandler : MonoBehaviour
         heightMapSettings.heightMultiplier = value;
         heightMultiplierText.text = value.ToString();
         mapPreview.DrawMapInEditor();
+        SaveSettings();
     }
 
     void UpdateSeed(string value)
@@ -109,13 +128,13 @@ public class StartScreenUIHandler : MonoBehaviour
         {
             noiseSettings.seed = seed;
             mapPreview.DrawMapInEditor();
+            SaveSettings();
         }
     }
 
     void GoToNextScene()
     {
-        // Load the next scene. Make sure to replace "NextSceneName" with the actual name of the next scene.
-        SceneManager.LoadScene("Game");
+        SceneManager.LoadScene("BaseMenu");
     }
 
     void ResetValues()
@@ -131,11 +150,37 @@ public class StartScreenUIHandler : MonoBehaviour
         // Update UI elements to reflect default values
         InitializeUI();
         mapPreview.DrawMapInEditor();
+        SaveSettings();
     }
 
     void ExitApplication()
     {
         // Exit the application
         Application.Quit();
+    }
+
+    void SaveSettings()
+    {
+        PlayerPrefs.SetFloat("Scale", noiseSettings.scale);
+        PlayerPrefs.SetInt("Octaves", noiseSettings.octaves);
+        PlayerPrefs.SetFloat("Persistence", noiseSettings.persistence);
+        PlayerPrefs.SetFloat("Lacunarity", noiseSettings.lacunarity);
+        PlayerPrefs.SetInt("Seed", noiseSettings.seed);
+        PlayerPrefs.SetFloat("HeightMultiplier", heightMapSettings.heightMultiplier);
+        PlayerPrefs.Save();
+    }
+
+    void LoadSettings()
+    {
+        if (PlayerPrefs.HasKey("Scale"))
+        {
+            noiseSettings.scale = PlayerPrefs.GetFloat("Scale");
+            noiseSettings.octaves = PlayerPrefs.GetInt("Octaves");
+            noiseSettings.persistence = PlayerPrefs.GetFloat("Persistence");
+            noiseSettings.lacunarity = PlayerPrefs.GetFloat("Lacunarity");
+            noiseSettings.seed = PlayerPrefs.GetInt("Seed");
+            heightMapSettings.heightMultiplier = PlayerPrefs.GetFloat("HeightMultiplier");
+            InitializeUI();
+        }
     }
 }
